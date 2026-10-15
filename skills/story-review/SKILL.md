@@ -222,10 +222,3 @@ AI 味 / 禁用词 fallback 速查：
 | 要修改查出的问题 | story-long-write / story-short-write | 返回对应写作 skill 修改 |
 | 发现 AI 味需清理 | story-deslop | `/story-deslop` |
 | 需要重新拆解对标书 | story-long-analyze / story-short-analyze | `/story-long-analyze` 或 `/story-short-analyze` |
-
----
-
-## 语言
-
-- 跟随用户的语言回复，用户用什么语言就用什么语言回复。
-- 中文回复遵循《中文文案排版指北》。

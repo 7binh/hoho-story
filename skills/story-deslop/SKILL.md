@@ -265,10 +265,3 @@ node scripts/normalize-punctuation.js <正文文件...>
 | 继续写作 | story-long-write / story-short-write | `/story-long-write` 或 `/story-short-write` |
 | 发现结构问题 | story-long-analyze / story-short-analyze | `/story-long-analyze` 或 `/story-short-analyze` |
 | 准备做封面 | story-cover | `/story-cover` |
-
----
-
-## 语言
-
-- 跟随用户的语言回复，用户用什么语言就用什么语言回复
-- 中文回复遵循《中文文案排版指北》

@@ -179,10 +179,3 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 | 五份平台参考（链接见「脚本采集模式」第 1 步） | 「确定数据来源」：只读所选平台那份——榜单网址、命令、字段、故障排查、平台分析维度 |
 | [scripts/aggregate-rank.js](scripts/aggregate-rank.js) | 把输出目录里的原始榜单聚合成短表（`--out` 落盘，`--sample` 抽原始条目，`--json` 机读），主会话只读它 |
 | [scripts/cdp-utils.js](scripts/cdp-utils.js) 与各平台采集脚本 | CDP 公共工具与各平台采集脚本（`{平台}-rank-scraper.js`），命令见所选平台参考 |
-
----
-
-## 语言
-
-- 跟随用户的语言回复，用户用什么语言就用什么语言回复
-- 中文回复遵循《中文文案排版指北》

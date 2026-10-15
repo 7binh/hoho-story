@@ -120,8 +120,3 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 | 想拆一本外部对标书 | story-long-analyze / story-short-analyze | `/story-long-analyze` / `/story-short-analyze` |
 | 从零开新书 | story-long-write / story-short-write | `/story-long-write` + "开书" / `/story-short-write` |
 | 项目未装写作环境 | story-setup | `/story-setup` |
-
-## 语言
-
-- 跟随用户的语言回复，用户用什么语言就用什么语言回复
-- 中文回复遵循《中文文案排版指北》
