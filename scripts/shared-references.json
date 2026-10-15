@@ -118,11 +118,6 @@
       "targets": ["skills/story-setup/references/agent-references/long-suspense.md"]
     },
     {
-      "name": "short-suspense",
-      "source": "skills/story-short-write/references/short-suspense.md",
-      "targets": ["skills/story-setup/references/agent-references/short-suspense.md"]
-    },
-    {
       "name": "opening-design",
       "source": "skills/story-long-write/references/opening-design.md",
       "targets": ["skills/story-setup/references/agent-references/opening-design.md"]
@@ -301,14 +296,6 @@
       "members": [
         "skills/story-long-write/references/cross-book-recall.md",
         "skills/story-short-write/references/cross-book-recall.md"
-      ]
-    },
-    {
-      "name": "analysis-writing-techniques",
-      "reason": "Analysis technique rubric derives from the short-writing technique catalog.",
-      "members": [
-        "skills/story-short-analyze/references/analysis-writing-techniques.md",
-        "skills/story-short-write/references/genre-writing-techniques.md"
       ]
     }
   ],

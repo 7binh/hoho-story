@@ -55,7 +55,7 @@
         "**/*"
       ],
       "maintainer": "worldwonderer",
-      "packageDigest": "0153a2ea5e2c0471241a3deb46936c46bb519f32483e6053cc800d763f2d3335",
+      "packageDigest": "985eda4e0ed1db7bf78848bd254521266e00574a3934d9dc3fad4be4a1b319b4",
       "path": "skills/story",
       "publisher": "worldwonderer",
       "rebuildOn": [],
@@ -72,10 +72,10 @@
         "skill:worldwonderer/story-long-scan@1.1.19",
         "skill:worldwonderer/story-long-write@1.1.31",
         "skill:worldwonderer/story-review@1.1.29",
-        "skill:worldwonderer/story-setup@1.1.28",
+        "skill:worldwonderer/story-setup@1.1.29",
         "skill:worldwonderer/story-short-analyze@1.1.23",
         "skill:worldwonderer/story-short-scan@1.1.16",
-        "skill:worldwonderer/story-short-write@1.1.23"
+        "skill:worldwonderer/story-short-write@1.1.24"
       ],
       "slug": "story",
       "supportedRuntimes": [],
@@ -85,7 +85,7 @@
         "chinese",
         "storytelling"
       ],
-      "version": "1.0.4"
+      "version": "1.0.5"
     },
     {
       "catalogMigration": true,
@@ -351,7 +351,7 @@
         "**/*"
       ],
       "maintainer": "worldwonderer",
-      "packageDigest": "80f91d8f8abaf91683568ab42a530f2aaf260c100a1d637c55a2232efbb263f5",
+      "packageDigest": "9e2d834253d49bdf175638c28492fe0f0e3ee827194c478bb3f176f88556b39b",
       "path": "skills/story-setup",
       "publisher": "worldwonderer",
       "rebuildOn": [],
@@ -371,7 +371,7 @@
         "chinese",
         "storytelling"
       ],
-      "version": "1.1.28"
+      "version": "1.1.29"
     },
     {
       "catalogMigration": true,
@@ -455,7 +455,7 @@
         "**/*"
       ],
       "maintainer": "worldwonderer",
-      "packageDigest": "1e68a05b7e51adb815aba416006f386d8230c5d04476122586040ac44f975f85",
+      "packageDigest": "c114241d223fb9701e78c58b912ac9c238a8721b6973a1ec8d87aa2ec75664c2",
       "path": "skills/story-short-write",
       "publisher": "worldwonderer",
       "rebuildOn": [],
@@ -475,7 +475,7 @@
         "chinese",
         "storytelling"
       ],
-      "version": "1.1.23"
+      "version": "1.1.24"
     }
   ]
 }

@@ -77,7 +77,7 @@ maxTurns: 30
 - 期待感核心模型：建立 -- 维持 -- 打破 -- 重建的循环
 - 三翻四震结构：连续翻转的节奏控制
 - 悬念构建检查清单：基础/冲击力/公平性/节奏
-- **执行时按 profile 读取**对应的 chapter hooks 与 suspense 文件：long 使用 `story-setup/references/agent-references/long-chapter-hooks.md` + `story-setup/references/agent-references/long-suspense.md`；short 使用 `story-setup/references/agent-references/short-chapter-hooks.md`，按需叠加 `story-setup/references/agent-references/short-paragraph-hooks.md` + `story-setup/references/agent-references/short-suspense.md`。
+- **执行时按 profile 读取**对应的 chapter hooks 与 suspense 文件：long 使用 `story-setup/references/agent-references/long-chapter-hooks.md` + `story-setup/references/agent-references/long-suspense.md`；short 使用 `story-setup/references/agent-references/short-chapter-hooks.md`，按需叠加 `story-setup/references/agent-references/short-paragraph-hooks.md`。
 
 ### 反转设计
 - 7种反转类型：身份/视角/动机/时间线/信息/认知/无反转（与拆文 _meta.json.reversal_type 一致）

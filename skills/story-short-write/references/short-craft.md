@@ -143,5 +143,5 @@
 
 - 对话权力博弈、潜台词、弹幕递进：见 `dialogue-mastery.md`。
 - 反转类型、嵌套反转、打脸节奏：见 `short-reversal.md`。
-- 章首 / 章尾钩子模板：见 `hooks-chapter.md` / `hooks-paragraph.md` / `short-suspense.md`。
+- 节首 / 节尾与全文悬念：见 `hooks-chapter.md`；段落钩子见 `hooks-paragraph.md`。
 - 情感三板斧（羁绊铺设 / 情感撕裂 / 余韵钝痛）：见 `emotional-methods.md`。
