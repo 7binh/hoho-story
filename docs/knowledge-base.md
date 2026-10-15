@@ -2,7 +2,7 @@
 
 [English](knowledge-base_EN.md)
 
-各 skill 自带 `references/` 知识库，按需加载，不占上下文。下表是全部主题清单。
+各 skill 自带 `references/`，按任务读取，未读取的资料不进入上下文。主题如下。
 
 | 主题 | 内容 | 所在 skill |
 |:-----|:-----|:-----------|

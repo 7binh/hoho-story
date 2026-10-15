@@ -2,11 +2,11 @@
 
 [中文](architecture.md)
 
-Oh Story splits long-form writing into three layers: the file system as memory, specialist agents, and automated gates. Full detail below; the overview is in [How it works](../README_EN.md#how-it-works).
+Oh Story splits long-form writing into three layers: the file system as memory, specialist agents, and automated gates. The overview is in [How it works](../README_EN.md#how-it-works).
 
 ## Agent System
 
-Writing skills internally coordinate 7 specialized agents:
+Writing skills call seven specialist agents as needed and fall back to the main session when the host has not registered them. The models below are Claude template defaults; other hosts use their adapter settings:
 
 | Agent | Model | Role |
 |:------|:------|:-----|
@@ -18,7 +18,7 @@ Writing skills internally coordinate 7 specialized agents:
 | **story-explorer** | Haiku | Story query — read-only character/foreshadowing/setting/progress lookup, quick context loading |
 | **chapter-extractor** | Haiku | Continuous chapter blocks / legacy-asset normalization — chapter facts, per-chapter plot points, and cross-chapter plot arcs |
 
-Agents load writing theory from `references/` on demand (character design, dialogue techniques, twist toolbox, etc. — 100+ methodology files), without reserving context window space.
+Agents read relevant character, dialogue and twist references as needed. Unread files do not enter the context.
 
 ## Automation Hooks
 
@@ -37,9 +37,7 @@ Agents load writing theory from `references/` on demand (character design, dialo
 
 ## Project File Structure
 
-A long-form novel can easily reach hundreds of thousands of words across hundreds of chapters. Setting conflicts, broken foreshadowing, timeline inconsistencies — relying on memory alone is a recipe for disaster.
-
-The file system separates settings, outlines, prose, and tracking into independent dimensions. The conversation handles creation; the file system handles memory.
+The project keeps settings, outlines, prose and tracking in separate files. Each chapter loads relevant records and commits changes that actually happened, reducing reliance on the chat transcript.
 
 Author memory stays separate from any one book's continuity tracking and lives in two stores so memory travels with the book: the workspace `.story/作者记忆/` holds global, genre and workflow preferences (`AP` ids), and each book directory's `.story/作者记忆/` holds only that book's preferences (`BP` ids). Both share the same layout:
 
@@ -53,7 +51,7 @@ Author memory stays separate from any one book's continuity tracking and lives i
 
 Only preferences the author states explicitly are recorded; nothing is inferred from repeated edits or finished drafts.
 
-**Long-form:**
+**Long-form:** the English directory labels below explain their roles. Actual project paths use the Chinese names shown in the [Chinese structure](architecture.md#项目文件结构).
 
 ```
 {Book Title}/
@@ -103,6 +101,8 @@ Only preferences the author states explicitly are recorded; nothing is inferred 
         └── 写作手法.md
 ```
 
-**Deconstruction Library:** Deconstruction skills save structured outputs (characters, plotlines, settings, chapters) under `拆文库/{Book Title}/` at project root; long-form plot output includes `节奏.md` and `情绪模块.md`. Writing skills consume these assets through `对标/{书名}/剧情/` and related benchmark subdirectories, or automatically fall back to reading from the deconstruction library.
+The eight-section short-form outline is an illustration; the confirmed design and delivery contract determine the actual section count.
+
+**Deconstruction Library:** Deconstruction skills save structured outputs (characters, plotlines, settings, chapters) under `拆文库/{Book Title}/` at project root; long-form plot output includes `节奏.md` and `情绪模块.md`. Writing skills consume these assets through `对标/{书名}/剧情/` and related benchmark subdirectories, falling back to the deconstruction library when project views are absent. The book’s own style takes priority; benchmark style fills unspecified dimensions.
 
 **`.active-book`:** a text file at project root containing the active book's relative path (for example, `长篇/My Novel`). Hooks and writing skills use it to locate the current project.

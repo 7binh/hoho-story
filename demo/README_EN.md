@@ -17,7 +17,7 @@ Real output from the skills, browsable as files.
 
 
 ## Deconstruction demo — Coiling Dragon
-Full output from `/story-long-analyze` deep mode on the first 23 chapters of *Coiling Dragon*:
+Historical output from `/story-long-analyze` on the first 23 chapters of *Coiling Dragon*, preserving the files and structure of that run:
 
 ```
 demo/拆文库/盘龙/
@@ -50,7 +50,7 @@ demo/拆文库/盘龙/
         └── 巴鲁克家族.md  # Baluk family (dragon-blood lineage)
 ```
 
-Long-form deconstruction also produces `文风.md`, plus `剧情/节奏.md` (pacing, key-info progression, emotional trigger eruption rhythm) and `剧情/情绪模块.md` (reader needs, emotional engine, reusable writing modules); daily writing consumes these through `对标/{书名}/剧情/` to keep voice, pacing, and emotion modules close to the benchmark.
+Long-form deconstruction produces style, rhythm and emotion-module references. The current writing workflow reads relevant material from `对标/{书名}/`; the book’s own style takes priority, benchmark style fills unspecified dimensions, and the book’s outline owns the plot.
 
 
 ## Deconstruction demo — Once I Hid My Love (曾将爱意私藏, short-form)
@@ -62,7 +62,7 @@ demo/拆文库/曾将爱意私藏/
 ├── 拆文报告.md          # Story core + 5-dim scores + 6-facet payoff + cognitive reversal + 9-layer resonance
 ├── 情节节点.md          # 54 plot points (source quotes + emotion markers −9~+9)
 ├── 写作手法.md          # POV / dialogue / info-gap / object-hook — 11 techniques
-└── _meta.json           # structure_counts (Phase 7 gate basis)
+└── _meta.json           # structure_counts (deconstruction acceptance counts)
 ```
 
 Short-form deconstruction outputs `拆文报告 / 情节节点 / 写作手法`; downstream `/story-short-write` writes a new same-genre story from them.
@@ -83,7 +83,7 @@ demo/长篇/让你管账号，你高燃混剪炸全网/
 
 Per-chapter extraction (events / characters / settings / foreshadowing / timeline) is reverse-engineered into a continuation bible, so the author seamlessly continues from chapter 21.
 
-## Added in this batch
+## Published continuation artifacts
 
 | Path | What it is |
 |---|---|

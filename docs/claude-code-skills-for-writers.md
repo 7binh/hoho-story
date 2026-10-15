@@ -1,8 +1,6 @@
 # Claude Code skills that are not for coding: a fiction-writing skill pack as the worked example
 
-**Short answer:** yes, agent skills work for non-developers, and the largest example is a novel-writing pack. Oh Story (`zenstory-ai/oh-story-claudecode`) is an MIT-licensed set of 13 skills that turns Claude Code, Codex CLI, OpenCode, Google Antigravity, OpenClaw, ZCode and Reasonix into a full workflow for writing serialized fiction: scan bestseller charts, deconstruct top-ranked books, draft chapters with file-based continuity tracking, strip AI-flavored prose, generate covers. About 6.8k GitHub stars. No code is written by the user; the agent reads and writes Markdown files in a book project.
-
-This page explains what an agent skill is in plain terms, what a mature non-coding skill pack looks like on disk, and how a writer installs and uses one.
+Agent skills can organize non-coding work. Oh Story (`zenstory-ai/oh-story-claudecode`) is an MIT-licensed set of 13 skills that turns Claude Code, Codex CLI, OpenCode, Google Antigravity, OpenClaw, ZCode and Reasonix into a full workflow for writing serialized fiction: scan bestseller charts, deconstruct top-ranked books, draft chapters with file-based continuity tracking, strip AI-flavored prose, generate covers. No code is written by the user; the agent reads and writes Markdown files in a book project.
 
 ## What a skill is, in one paragraph
 
@@ -14,11 +12,11 @@ The 13 skills in Oh Story, grouped by writing task:
 
 | Task | Skill | What it does |
 |---|---|---|
-| Set up | `story-setup` | Deploys per-agent config, 7 specialist sub-agents and hooks into a book project |
+| Set up | `story-setup` | Deploys host-specific files; specialist agents and hooks depend on the host |
 | Route | `story` | Natural-language entry ("I want to start a book"), author-preference memory, local dashboard |
 | Research | `story-long-scan`, `story-short-scan` | Scan 起点/番茄/晋江 and short-fiction charts for repeated patterns, not single rankings |
-| Deconstruct | `story-long-analyze`, `story-short-analyze` | Six-stage pipeline: golden first three chapters, per-chapter summaries, rhythm and emotion-module indexes, settings, style profile |
-| Draft | `story-long-write`, `story-short-write` | Outline to prose with a file-first tracking state (`_tracking-state.json`, per-chapter deltas ≤3072 bytes) |
+| Deconstruct | `story-long-analyze`, `story-short-analyze` | Long-form Stages 0–6 cover chapter indexing, golden opening, block extraction, rhythm, settings, report and style; short-form Stages 2–6 produce its own analysis assets |
+| Draft | `story-long-write`, `story-short-write` | Outline to prose; long-form uses file-first tracking (`_tracking-state.json`, per-chapter deltas ≤3072 bytes), while short-form uses its own setting, outline and story files |
 | Revise | `story-deslop` | Writing lint for AI-flavored prose: deterministic pattern check, 7 gates, capped deletion ratios |
 | Review | `story-review` | Multi-perspective review with parallel reviewer agents, falls back to single-thread |
 | Import | `story-import` | Reverse-parse an existing manuscript into the project structure |
@@ -29,7 +27,7 @@ The parts that make it more than a prompt collection:
 
 - **Deterministic checks.** `story-deslop` runs `node scripts/check-ai-patterns.js` before any rewrite; `story-long-write` refuses to write a chapter whose brief lacks a word target instead of guessing.
 - **Blocking reference gates.** A chapter is written only after the agent has read the brief, the volume outline and the current tracking state and written down this round's constraints (word range, must-happen, must-not-happen, time anchors).
-- **Layered state on disk.** Settings, outlines, prose and tracking live in separate directories. The tracking state card is a fixed 7-section file capped at 12KB, so chapter 300 loads about as much context as chapter 30.
+- **Layered state on disk.** Settings, outlines, prose and tracking live in separate directories. The tracking state card is a fixed 7-section file capped at 12KB, with older records queried as needed instead of loading the full history.
 - **Per-runtime deployers.** One `/story-setup` writes the right files for whichever agent you use (`.claude/`, `.codex/`, `.opencode/`, `.agents/` and so on).
 - **Cross-runtime packaging.** The repo ships `marketplace.json`, `.claude-plugin`, `.zcode-plugin` and `reasonix-plugin.json`, which is what a multi-host skill pack needs today.
 
@@ -45,13 +43,13 @@ Then, inside the agent, in an empty folder for the book:
 /story-setup
 ```
 
-Open a new session and say what you want in plain language. "帮我开书" starts a new book (settings, outline, first chapters). "把我的书导进来" imports an existing manuscript. "这篇太 AI 了" runs the de-AI pass. "沈栀现在什么状态" asks a sub-agent to report a character's current state from the tracking files. No terminal commands beyond the two above.
+Open a new session and say what you want in plain language. "帮我开书" (help me plan a book) starts settings and outline work; prose is written when requested. "把我的书导进来" imports an existing manuscript. "这篇太 AI 了" runs the de-AI pass. "沈栀现在什么状态" asks a sub-agent to report a character's current state from the tracking files. No terminal commands beyond the two above.
 
 The pack is built for Chinese web fiction (起点, 番茄, 晋江, 七猫, 知乎盐言), and the skills, references and file names are in Chinese. The mechanism is language-independent.
 
 ## Why this matters for "skills beyond code"
 
-Most articles about agent skills illustrate them with developer tooling: frontend design, test generation, database queries. Fiction is a harder case for the same machinery. The state is large, it changes every chapter, the author must stay in control of plot decisions, and "correct" is a matter of reader feel rather than a passing test. A pack that handles that with files, gates and scripts is a useful reference for anyone building skills for non-coding work: research, editing, documentation, production pipelines.
+Fiction uses the same machinery for a different kind of state. The state is large, it changes every chapter, the author must stay in control of plot decisions, and "correct" is a matter of reader feel rather than a passing test. Files preserve state, gates check required inputs, and scripts handle mechanical validation. The same division can support research, editing, documentation and production workflows.
 
 ## Related
 

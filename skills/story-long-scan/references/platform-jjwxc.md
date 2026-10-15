@@ -12,7 +12,7 @@ node scripts/jjwxc-rank-scraper.js --type 12 --top 15 --detail-limit 60  # 调�
 node scripts/jjwxc-rank-scraper.js --type 12 --list-only                 # 只采列表（快，无核心指标）
 ```
 
-默认收入金榜 + 月榜。本数含全列表，热度只含详情样本；覆盖见「详情采集」。
+默认收入金榜 + 月榜。本数含全列表，热度只含详情样本；覆盖见本次榜单文件头的「详情采集」。
 
 ## 字段与硬性要求
 

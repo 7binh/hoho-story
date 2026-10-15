@@ -2,7 +2,7 @@
 
 ## 唯一状态与三个脚本
 
-生产运行只使用：
+拆文运行使用三个脚本：
 
 1. `build_chapter_index.py`：建立机械章界和逐章原文 hash；
 2. `inspect_existing_assets.py`：只读识别旧成果、当前成果、缺章和修复阶段；
@@ -36,7 +36,6 @@ Stage 4 另用 `render_relation_chart.py` 从 `角色/角色关系.md` 生成人
 - 完整旧项目：`direct_use`，不建索引、不读原文。
 - 部分项目：精确报告 `missing_semantic_chapters` 与 `missing_summary_chapters`。
 - 新旧投影混存：`mixed_sources: true` 并列明逐章来源，仍可直接使用完整项目。
-- `schema_version` 只报告，不参与否定旧项目，也不在检查或复用时改写。
 - `stage_repairs` 中的情绪、节奏和文风修复与 Stage 2 缺章分开处理。
 
 ## 2. 需要原文时建立或校验索引
@@ -81,7 +80,7 @@ Stage 4 另用 `render_relation_chart.py` 从 `角色/角色关系.md` 生成人
 
 - `batch_id`、`input_kind`；
 - `source_files`（原文块是逐章 `source_locator`，子代理自己按行号读原文）、`chapter_chars`（每章字数）和 `min_plot_points`（每章情节点下限，按字数算好）；
-- `input_file`：输出文件 `_analysis_cache/输入-{批次ID}.md`，每本书保存在各自拆文目录中；
+- `input_file`：子代理的输出路径 `_analysis_cache/输入-{批次ID}.md`，每本书保存在各自拆文目录中；
 - `handoff_cache`：交接缓存，计划算好的「本批起章之前最近的已提交批次」，为空就不给；子代理只读其中 `### 跨批状态`。
 
 子代理把完整输出写进输出文件，只回一行 `BATCH_WRITTEN` 回执。主会话**不 Read 这份输入文件**，直接提交；提交被拒时重新派发同一批：上面的字段原样再给一遍（子代理补内容要按 `source_locator` 回看原文、按 `min_plot_points` 补情节点），再附错误码，让它用 Edit 只改出错处后再提交（结构整体错乱才整份重写）。提交成功后删掉这份输入。不论哪种派发方式，`commit` 都由主会话逐个执行，不并发跑。
