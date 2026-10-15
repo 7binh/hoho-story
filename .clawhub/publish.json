@@ -55,7 +55,7 @@
         "**/*"
       ],
       "maintainer": "worldwonderer",
-      "packageDigest": "d9638fa8a5f5adf320b73817745db141a12e4092f7a89721fed8600a60d75c6e",
+      "packageDigest": "a5c11a16c6a9f9d6dea0078d7a6bf5e4d88d6ef6734099f5403da09839b8df3f",
       "path": "skills/story",
       "publisher": "worldwonderer",
       "rebuildOn": [],
@@ -73,8 +73,8 @@
         "skill:worldwonderer/story-long-write@1.1.32",
         "skill:worldwonderer/story-review@1.1.30",
         "skill:worldwonderer/story-setup@1.1.30",
-        "skill:worldwonderer/story-short-analyze@1.1.24",
-        "skill:worldwonderer/story-short-scan@1.1.16",
+        "skill:worldwonderer/story-short-analyze@1.1.25",
+        "skill:worldwonderer/story-short-scan@1.1.17",
         "skill:worldwonderer/story-short-write@1.1.25"
       ],
       "slug": "story",
@@ -85,7 +85,7 @@
         "chinese",
         "storytelling"
       ],
-      "version": "1.0.6"
+      "version": "1.0.7"
     },
     {
       "catalogMigration": true,
@@ -387,7 +387,7 @@
         "**/*"
       ],
       "maintainer": "worldwonderer",
-      "packageDigest": "a5ed36195b9ca88fab4bc200abe9f3cbd1cca74d30263b7e95f897be9edc3a47",
+      "packageDigest": "3b3b585b9053d1cdc71e105b2589aa21c036dc4b7bcf699339515957ce91fd1a",
       "path": "skills/story-short-analyze",
       "publisher": "worldwonderer",
       "rebuildOn": [],
@@ -404,7 +404,7 @@
         "chinese",
         "storytelling"
       ],
-      "version": "1.1.24"
+      "version": "1.1.25"
     },
     {
       "catalogMigration": true,
@@ -420,7 +420,7 @@
         "**/*"
       ],
       "maintainer": "worldwonderer",
-      "packageDigest": "be9f3e5d27e57318f920fb21f9244a79cf0134e5bfe2494a3a72e573660f870e",
+      "packageDigest": "ef41361593b0c82a43ea9814e528300c7320adea127a3f2792856902c7285fb4",
       "path": "skills/story-short-scan",
       "publisher": "worldwonderer",
       "rebuildOn": [],
@@ -439,7 +439,7 @@
         "chinese",
         "storytelling"
       ],
-      "version": "1.1.16"
+      "version": "1.1.17"
     },
     {
       "catalogMigration": true,
