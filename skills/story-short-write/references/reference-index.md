@@ -1,6 +1,6 @@
 # 短篇参考资料索引
 
-各阶段必读项按 SKILL.md「写前必读」与各 workflow 执行；检测与验收脚本由 workflow 直接给出命令。下表只列按需资料：
+阶段必读项及检测、验收命令按 SKILL.md「写前必读」与各 workflow 执行；其余资料按下表选择：
 
 | 文件 | 何时加载 |
 |------|----------|
@@ -15,7 +15,7 @@
 | [villain-and-reveal.md](villain-and-reveal.md) | 设计反派与真相揭露、报应 |
 | [hooks-chapter.md](hooks-chapter.md) · [hooks-paragraph.md](hooks-paragraph.md) | 节首/节尾钩子、段落钩子、全文悬念承接与收束 |
 | [dialogue-mastery.md](dialogue-mastery.md) | 写对话（差异化 / 潜台词 / 对话节奏） |
-| [short-deslop.md](short-deslop.md) | 去 AI 味（只杀真·AI 腔，不杀情绪烈度、审判句、火葬场预告） |
+| [short-deslop.md](short-deslop.md) | 去 AI 味，保留有功能的强情绪、审判句与火葬场预告 |
 | [short-prose-quality.md](short-prose-quality.md) · [banned-words.md](banned-words.md) | 精修检查、禁用词 |
 | [output-contract.md](output-contract.md) | 对标上下文加载时理解 analyze 产出格式 |
 
