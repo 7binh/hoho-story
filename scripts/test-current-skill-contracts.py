@@ -582,6 +582,24 @@ def test_spawn_preflight_uses_agents_version_not_file_existence() -> None:
         "the current shared spawn preflight must pass",
     )
 
+    review_contract = current_contract.replace(
+        "只有 agent 文件缺失、或运行时不暴露 custom agent 时才降级 solo/direct",
+        "版本提示本身不触发降级；文件缺失或异常、工具不可用、递归限制或调用失败按 Phase 0 处理",
+    )
+    review_path = Path("skills/story-review/SKILL.md")
+    require(
+        not VALIDATOR.spawn_preflight_findings(review_contract, manifest, review_path),
+        "review must retain the existing Phase 0 failure paths without blocking stale bundles",
+    )
+    require(
+        VALIDATOR.spawn_preflight_findings(
+            review_contract.replace("版本提示本身不触发降级", "版本不匹配时降级"),
+            manifest,
+            review_path,
+        ),
+        "review must not turn a version notice into a fallback trigger",
+    )
+
     bumped = manifest_with(agents_version=current + 1)
     stale_paths = flagged_paths(bumped, "spawn-agents-version-preflight")
     require(

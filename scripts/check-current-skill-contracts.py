@@ -804,6 +804,11 @@ def spawn_preflight_findings(
     """
 
     current = str(manifest.agents_version)
+    fallback_pattern = r"只有 agent 文件缺失、或运行时不暴露 custom agent 时才降级 solo/direct"
+    if path.as_posix().endswith("skills/story-review/SKILL.md"):
+        fallback_pattern = (
+            r"版本提示本身不触发降级；文件缺失或异常、工具不可用、递归限制或调用失败按 Phase 0 处理"
+        )
     required = (
         (r"`agents_version:\s*{}`".format(current), "pin the current agents_version"),
         (
@@ -819,8 +824,8 @@ def spawn_preflight_findings(
             "tell future deployments to update the package first",
         ),
         (
-            r"只有 agent 文件缺失、或运行时不暴露 custom agent 时才降级 solo/direct",
-            "reserve the solo/direct fallback for genuinely missing agents",
+            fallback_pattern,
+            "describe operational fallbacks without treating version mismatch as a failure",
         ),
     )
     missing = [label for pattern, label in required if re.search(pattern, text) is None]
