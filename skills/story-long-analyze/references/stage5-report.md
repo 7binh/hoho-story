@@ -18,7 +18,7 @@ Stage 5 时刻读本文件与 [synthesis-inputs.md](synthesis-inputs.md)。`拆�
 
 Stage 5 从已落盘的 `剧情/故事线.md`（含故事框架识别）与各剧情单元文件自行生成概要，写入 `概要.md`。覆盖 Stage 0 的概要初稿段，章节索引和卷段表保留。
 
-Stage 6 尚未完成时，报告的文风部分注明待补；文风落盘后补上简述。
+文风尚未生成时，报告的「文风一句话」写明待补；报告落盘并标记 `stage5` 完成后，由 Stage 6 按 [style-profile-generator.md](style-profile-generator.md)「报告回填」补齐，续跑也照此交接。
 
 ## 报告写法
 
