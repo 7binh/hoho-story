@@ -55,7 +55,7 @@
         "**/*"
       ],
       "maintainer": "worldwonderer",
-      "packageDigest": "540b1e470f0a46e3588fb5772f96c0b6efde7567973217d204a0096e48e3f7a6",
+      "packageDigest": "102d1911c82216aad54c6b1b6c076a23930e20941b3c8a02017331ad1d8b0c17",
       "path": "skills/story",
       "publisher": "worldwonderer",
       "rebuildOn": [],
@@ -70,9 +70,9 @@
         "skill:worldwonderer/story-import@1.0.29",
         "skill:worldwonderer/story-long-analyze@1.1.26",
         "skill:worldwonderer/story-long-scan@1.1.20",
-        "skill:worldwonderer/story-long-write@1.1.34",
+        "skill:worldwonderer/story-long-write@1.1.35",
         "skill:worldwonderer/story-review@1.1.32",
-        "skill:worldwonderer/story-setup@1.1.33",
+        "skill:worldwonderer/story-setup@1.1.34",
         "skill:worldwonderer/story-short-analyze@1.1.25",
         "skill:worldwonderer/story-short-scan@1.1.18",
         "skill:worldwonderer/story-short-write@1.1.26"
@@ -85,7 +85,7 @@
         "chinese",
         "storytelling"
       ],
-      "version": "1.0.16"
+      "version": "1.0.17"
     },
     {
       "catalogMigration": true,
@@ -279,7 +279,7 @@
         "**/*"
       ],
       "maintainer": "worldwonderer",
-      "packageDigest": "e1adfc69301528639f02dc1af3612146bde2853a9ad0228e392052a083a67c2f",
+      "packageDigest": "cd0856b721f281185d04f727f855ff816731ad9cd9c3cdd1fbc0bd39f697a730",
       "path": "skills/story-long-write",
       "publisher": "worldwonderer",
       "rebuildOn": [],
@@ -299,7 +299,7 @@
         "chinese",
         "storytelling"
       ],
-      "version": "1.1.34"
+      "version": "1.1.35"
     },
     {
       "catalogMigration": true,
@@ -351,7 +351,7 @@
         "**/*"
       ],
       "maintainer": "worldwonderer",
-      "packageDigest": "da5e7c016bb516ecc2b50e5d605b5a8acad952a78712b4df600b28a5d427a926",
+      "packageDigest": "1d129d5e5297277ebdd018dd500ad85c3b217e12330f90936789b3625d7e0a61",
       "path": "skills/story-setup",
       "publisher": "worldwonderer",
       "rebuildOn": [],
@@ -371,7 +371,7 @@
         "chinese",
         "storytelling"
       ],
-      "version": "1.1.33"
+      "version": "1.1.34"
     },
     {
       "catalogMigration": true,

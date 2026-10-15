@@ -24,7 +24,7 @@ Related: [概念链路闭环](../../implemented/architecture/2026-09-25-concept-
 
 ## Coverage
 
-本 skill 87 份文档全部完成五步：下表52份核心资料，另35份题材资料见同日 polish-long-genre-docs 笔记。两份作者记忆已由 story 真源精修并同步；deslop-gates 由 story-deslop 真源后续同步。
+本 skill 87 份文档全部完成五步：下表52份核心资料，另35份题材资料见同日 polish-long-genre-docs 笔记。两份作者记忆已由 story 真源精修并同步；deslop-gates 已由 story-deslop 真源精修并同步。
 
 | 文件 | 1 | 2 | 3 | 4 | 5 |
 |---|---|---|---|---|---|
