@@ -39,7 +39,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 
 ## 写作流程
 
-先确定操作对象、交付范围和停点，再看项目状态；空项目不等于授权完整开书。范围与转正文的权威规则如下。
+先确定操作对象、交付范围和停点，再看项目状态；空项目不等于授权完整开书。范围与转正文规则如下。
 
 | 场景 | 触发条件 | 执行流程 |
 |------|----------|----------|
@@ -54,7 +54,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 
 **对象优先**："写/修改第N章细纲"是规划，不因命中"写/修改第N章"而写正文；"以后再写正文"不是本轮授权。仅规划要求优先于旧日更任务，停止旧批量。对象不明或同一请求范围冲突时，只确认冲突项。
 
-**规划续接**："继续/按这个来/确认方案"不扩大范围，完成即停，不自动转细纲或正文；"继续写/接着写"指正文——下一章有细纲就写，上一轮在规划就只问一句「要接着写第N章正文吗？」（默认是），缺细纲则问是否先补。规划模式不写入追踪或作者记忆，不调用 narrative-writer。开新卷时新角色/势力/设定回 Phase 2 增量补，Phase 3 只做到请求层级。
+**规划续接**："继续/按这个来/确认方案"不扩大范围，完成即停，不自动转细纲或正文；"继续写/接着写"指正文——下一章有细纲就写，上一轮在规划就只问一句「要接着写第N章正文吗？」（默认是），缺细纲则问是否先补。规划模式不写追踪、不自动记录作者记忆，不调用 narrative-writer；作者明确要求长期记住时按记忆协议处理。开新卷时新角色/势力/设定回 Phase 2 增量补，Phase 3 只做到请求层级。
 
 **转入正文**：明确的正文请求只授权进入写作流程。落正文前重新完成本轮「写前必读」，按 workflow-chapter 处理缺 state、使 `tracking_commit.py check` 通过，任一未完成就停止；之后按原流程写作、质检、提交，不再问是否继续。
 
@@ -122,7 +122,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 | 写完，去 AI 味 | story-deslop | `/story-deslop` |
 | 想对比参考书 | story-long-analyze | `/story-long-analyze` |
 | 需要市场方向 | story-long-scan | `/story-long-scan` |
-| 太长，适合短篇 | story-short-write | `/story-short-write` |
+| 想改写成短篇 | story-short-write | `/story-short-write` |
 
 ---
 
