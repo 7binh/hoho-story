@@ -13,11 +13,11 @@ The 13 skills in Oh Story, grouped by writing task:
 | Task | Skill | What it does |
 |---|---|---|
 | Set up | `story-setup` | Deploys host-specific files; specialist agents and hooks depend on the host |
-| Route | `story` | Natural-language entry ("I want to start a book"), author-preference memory, local dashboard |
+| Route | `story` | Routes natural-language requests and preference management to the relevant writing skill; starts the local dashboard |
 | Research | `story-long-scan`, `story-short-scan` | Scan 起点/番茄/晋江 and short-fiction charts for repeated patterns, not single rankings |
 | Deconstruct | `story-long-analyze`, `story-short-analyze` | Long-form Stages 0–6 cover chapter indexing, golden opening, block extraction, rhythm, settings, report and style; short-form Stages 2–6 produce its own analysis assets |
 | Draft | `story-long-write`, `story-short-write` | Outline to prose; long-form uses file-first tracking (`_tracking-state.json`, per-chapter deltas ≤3072 bytes), while short-form uses its own setting, outline and story files |
-| Revise | `story-deslop` | Writing lint for AI-flavored prose: deterministic pattern check, 7 gates, capped deletion ratios |
+| Revise | `story-deslop` | Diagnoses expression, narrative emphasis and story causality, then revises within the author's scope and authorization |
 | Review | `story-review` | Multi-perspective review with parallel reviewer agents, falls back to single-thread |
 | Import | `story-import` | Reverse-parse an existing manuscript into the project structure |
 | Cover | `story-cover` | Cover generation from title and genre |
@@ -25,7 +25,7 @@ The 13 skills in Oh Story, grouped by writing task:
 
 The parts that make it more than a prompt collection:
 
-- **Deterministic checks.** `story-deslop` runs `node scripts/check-ai-patterns.js` before any rewrite; `story-long-write` refuses to write a chapter whose brief lacks a word target instead of guessing.
+- **Deterministic checks.** `story-deslop` uses `node scripts/check-ai-patterns.js` to locate patterns in local files, alongside contextual review; `story-long-write` refuses to write a chapter whose brief lacks a word target instead of guessing.
 - **Blocking reference gates.** A chapter is written only after the agent has read the brief, the volume outline and the current tracking state and written down this round's constraints (word range, must-happen, must-not-happen, time anchors).
 - **Layered state on disk.** Settings, outlines, prose and tracking live in separate directories. The tracking state card is a fixed 7-section file capped at 12KB, with older records queried as needed instead of loading the full history.
 - **Per-runtime deployers.** One `/story-setup` writes the right files for whichever agent you use (`.claude/`, `.codex/`, `.opencode/`, `.agents/` and so on).

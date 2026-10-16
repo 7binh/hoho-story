@@ -1,21 +1,19 @@
 # 升级指南
 
-## 开发版：作者记忆集中到写作 skill
-
-本节针对尚未发布的开发版，下面的「当前版本」保留已发布版本的升级要求。
-
-- 作者记忆的管理、查询和写作注入由 `story-long-write` 与 `story-short-write` 负责；`story` 只路由习惯管理请求，去 AI 味与审查沿用写作流程传入的文风要求。
-- 使用开发版时，更新技能包后在写作项目根重跑 `/story-setup`（Codex 用 `$story-setup`），再新开会话。本次重跑只为同步项目指令中的作者习惯路由。
-- 旧作者记忆数据和格式不变，本次职责调整无需迁移数据。下方 v0.7.11 的两级存储迁移只适用于尚未完成该历史升级的项目。
-
 ## 当前版本
 
-发布版本 `v0.8.5`。`agents_version` 仍是 34（与 v0.8.2 相同）：从 v0.8.2 及之后的版本升级只需更新技能包并新开会话，不用重跑 `/story-setup`；从 v0.8.1 或更早升级，按下方「v0.8.2 必须重跑 story-setup」重跑一次。
+发布版本 `v0.8.6`。本版更新了写手等助手模板、项目指令与参考资料包，已有项目更新技能包后都要在项目根重跑 `/story-setup`（Codex 用 `$story-setup`），再新开会话。
 
-- `setup_skill_version: 1.3.2`
-- `agents_version: 34`
+- `setup_skill_version: 1.3.3`
+- `agents_version: 35`
 
-`.story-deployed` 缺失任一字段，或 `agents_version` 缺失 / 非整数 / 小于 `34`，都视为待更新部署。直接重新运行 `/story-setup`（Codex 用 `$story-setup`，Antigravity 用 `/skills` 或自然语言点名）；如项目 `agents_version` 大于 `34`，说明本地 story-setup 比项目旧：先更新 oh-story-claudecode，不得用 v34 降级覆盖。历史版本改动见仓库根目录 `CHANGELOG.md`。
+`.story-deployed` 缺失任一字段，或 `agents_version` 缺失 / 非整数 / 小于 `35`，都视为待更新部署。直接重新运行 `/story-setup`（Codex 用 `$story-setup`，Antigravity 用 `/skills` 或自然语言点名）；如项目 `agents_version` 大于 `35`，说明本地 story-setup 比项目旧：先更新 oh-story-claudecode，不得用 v35 降级覆盖。历史版本改动见仓库根目录 `CHANGELOG.md`。
+
+### v0.8.6 必须重跑 story-setup
+
+- 写手与审稿按表达、叙事用笔、故事因果三层方法工作，电报体检查同时覆盖短碎句与长句中的逐项播报。参考资料包同步这三份方法和完整词句索引；短篇合并后的技法资料也随部署更新。只更新技能包会留下项目内的旧助手与旧参考资料。
+- 作者记忆的管理、查询和写作注入集中到 `story-long-write` 与 `story-short-write`。入口只路由习惯管理请求，去 AI 味与审稿接收调用方已有的偏好与文风裁决；项目指令同步该路由。
+- 旧书稿、设定、追踪和作者记忆数据格式不变，本版无需迁移数据。下方 v0.7.11 的两级存储迁移只适用于尚未完成该历史升级的项目。
 
 ### v0.8.2 必须重跑 story-setup
 
@@ -289,7 +287,7 @@ OpenClaw / Reasonix / generic 三条路径的 skill 副本在项目 `skills/` �
 ## 需要重新部署时的升级步骤
 
 1. 在项目根目录重新运行 story-setup。
-2. 确认 `.story-deployed` 写入 `agents_version: 34` 与 `setup_skill_version: 1.3.2`。
+2. 确认 `.story-deployed` 写入 `agents_version: 35` 与 `setup_skill_version: 1.3.3`。
 3. 确认目标 CLI 的 agents、hooks/rules 和 reference bundle 都通过安装验证。
 4. 新开会话，使 custom agents 与 hooks 按当前文件重新注册。
 5. **长篇在写项目必做**：检查每本书的 `追踪/_tracking-state.json` 是否存在。不存在就是旧追踪结构，按下方「追踪模型迁移」重建，否则写下一章会被拦。
