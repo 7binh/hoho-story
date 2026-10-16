@@ -1,6 +1,6 @@
 ---
 name: story
-description: "网络小说工具箱主入口。根据用户需求自动路由到对应 skill，并可管理作者习惯、启动本地 Dashboard。触发方式：/story、$story、/story dashboard、/网文、「我想写小说」「记住我的写作习惯」「打开工作台」「检查更新」。"
+description: "网络小说工具箱主入口。根据用户需求自动路由到对应 skill，并可启动本地 Dashboard。触发方式：/story、$story、/story dashboard、/网文、「我想写小说」「记住我的写作习惯」「打开工作台」「检查更新」。"
 metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudecode"}}
 ---
 # story：网文工具箱路由
@@ -29,7 +29,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 | 工作台 | dashboard、工作台、看拆文库、浏览项目文件、打开项目面板 | 见下方「Dashboard 工作台」 |
 | 检查/更新版本 | 检查更新、有新版本吗、升级、更新工具箱 | 见下方「版本更新检查」 |
 | 切换/列出书目 | 切书、换书、列出我的书、我在写哪几本、切换项目 | 见下方「多书切换」 |
-| 管理作者习惯 | 记住我的写作习惯、作者画像、待确认偏好、忘掉这个偏好 | 见下方「作者记忆」 |
+| 管理作者习惯 | 记住我的写作习惯、作者画像、待确认偏好、忘掉这个偏好 | `/story-long-write` 或 `/story-short-write`（按下方规则选择） |
 | 查故事资料 | 查角色、查伏笔、查进度、查设定、什么状态、写到哪了 | spawn `story-explorer` agent（结构化 prompt：`项目目录：{dir}\n查询类型：{根据意图选择}\n查询参数：{用户查询}`）；agent 不可用时见下方「查询降级」 |
 | 查资料 | 查资料、帮我查资料、调研、搜索一下、搜一下 | spawn `story-researcher` agent；agent 不可用时见下方「查询降级」 |
 
@@ -41,13 +41,9 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 
 用户问"导入续写先 setup 还是 import"时，直接回答：**推荐先 `/story-setup`，新开/刷新会话后 `/story-import`，最后 `/story-long-write 日更` 或 `/story-long-write 写第N章`**。如果用户已经直接触发 `/story-import`，按 story-import 自带环境检测继续：未 setup 时让用户选择先去 setup 或继续串行导入。
 
-## 作者记忆
+### 作者习惯管理路由
 
-用户要求记住、查看、确认、替换或忘掉作者习惯时，加载 [references/author-memory.md](references/author-memory.md)，并只用本 skill 的 `scripts/author_memory_commit.py` 管理两级 `.story/作者记忆/`：全局、题材、流程条目在工作区（`AP`），本书条目在书目录（`BP`，传 `--book-root`）。常用变更走单事件 `record`；工具未返回 `ok: true` 和 `Author Memory Receipt` 前，不得声称已记住。告诉作者时先用一句人话说记住了什么（如「记住了：这本书的对话一律用「」」），回执放最后一行，写法见协议「回执怎么告诉作者」。显示画像或待确认项是只读操作；不存在时直接说明尚未建立。
-
-新增习惯保留用户原话和适用范围，只记作者明确表达的偏好；一次性要求只执行，小说事实写入本书设定/追踪，不从反复修改或成稿推断偏好。范围含糊时进待确认；与同范围生效条目冲突时记录候选，作者明确替换旧规则才用 `replace`，不原地改写历史。
-
-作者要求「整理作者记忆」、回执提示容量不足、工具报单书布局错误，或项目级画像仍有「本书：」条目时，加载 [references/author-memory-maintenance.md](references/author-memory-maintenance.md)；迁移本书条目用 `migrate --book-root`。工作区按协议定位已有记忆的最近祖先或当前创作工作区，不默认写到用户主目录。
+按用户明确指定的长篇/短篇类型选择对应写作 skill；未指定时用当前书类型（`正文/` 为长篇，`正文.md` 与 `小节大纲.md` 或 `设定.md` 为短篇）。无当前书的通用习惯默认交长篇入口管理；只限定本书却无法定位时问哪本书，不要求先建书。将管理请求交给该写作 skill，路由层不读写作者记忆文件。
 
 ## Dashboard 工作台
 

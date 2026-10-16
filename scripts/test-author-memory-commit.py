@@ -16,7 +16,7 @@ from typing import Any
 
 
 REPO = Path(__file__).resolve().parents[1]
-TOOL = REPO / "skills" / "story" / "scripts" / "author_memory_commit.py"
+TOOL = REPO / "skills" / "story-long-write" / "scripts" / "author_memory_commit.py"
 
 
 def run(*args: str, expect: int = 0) -> subprocess.CompletedProcess[str]:
@@ -1171,15 +1171,9 @@ def main() -> None:
             "作者偏好 query",
             "\\n作者偏好：{",
         ),
-        REPO / "skills/story-deslop/SKILL.md": (
-            "query --workspace {工作区} --book-root {书目录} --kind prose_style",
-        ),
         # 去味交给写手的 prompt 随「只在交给写手时才用」迁到 agent-calls.md（v0.8.3）。
         REPO / "skills/story-deslop/references/agent-calls.md": (
             "\\n作者偏好：{",
-        ),
-        REPO / "skills/story-review/SKILL.md": (
-            "query --workspace {工作区} --book-root {书目录} --kind delivery --kind interaction --kind prose_style",
         ),
         REPO / "skills/story-short-write/SKILL.md": (
             "query --workspace {工作区} --book-root {项目目录} --kind prose_style --kind story_design",
@@ -1193,8 +1187,16 @@ def main() -> None:
         content = path.read_text(encoding="utf-8")
         for fragment in required_fragments:
             assert fragment in content, f"missing author-memory injection contract in {path}: {fragment}"
-    # #436：文档不再引导推断写入
-    for path in sorted((REPO / "skills").glob("*/references/author-memory*.md")) + [REPO / "skills/story/SKILL.md", REPO / "skills/story-review/SKILL.md", REPO / "skills/story-deslop/SKILL.md"]:
+    # 只有写作 skill 拥有记忆协议和工具；其他 skill 通过调用方接收裁决。
+    owners = ("story-long-write", "story-short-write")
+    expected_protocols = {REPO / "skills" / owner / "references" / name
+                          for owner in owners
+                          for name in ("author-memory.md", "author-memory-maintenance.md")}
+    assert set((REPO / "skills").glob("*/references/author-memory*.md")) == expected_protocols
+    assert set((REPO / "skills").glob("*/scripts/author_memory_commit.py")) == {
+        REPO / "skills" / owner / "scripts/author_memory_commit.py" for owner in owners}
+    # #436：写作入口和协议不再引导推断写入。
+    for path in sorted(expected_protocols) + [REPO / "skills" / owner / "SKILL.md" for owner in owners]:
         content = path.read_text(encoding="utf-8")
         assert "repeated_correction" not in content and "inferred_pattern" not in content, f"{path} 仍在引导推断写入"
     # v0.8.2：协议按作者时刻拆分——记一条偏好的时刻只读 author-memory.md，少见时刻的规则在维护文件。
@@ -1204,11 +1206,11 @@ def main() -> None:
         "author-memory-maintenance.md": ("## 整理作者记忆", "## 任务映射表", "## 单书布局", "## 存量迁移", "## 冲突候选", "12288", "migrate --workspace", "commit  --workspace", "check   --workspace"),
     }
     for name, fragments in moment_anchors.items():
-        for path in sorted((REPO / "skills").glob(f"*/references/{name}")):
+        for path in sorted(path for path in expected_protocols if path.name == name):
             content = path.read_text(encoding="utf-8")
             for fragment in fragments:
                 assert fragment in content, f"{path} 缺少作者记忆时刻锚点：{fragment}"
-    hot = (REPO / "skills/story/references/author-memory.md").read_text(encoding="utf-8")
+    hot = (REPO / "skills/story-long-write/references/author-memory.md").read_text(encoding="utf-8")
     for rare in ("## 整理作者记忆", "12288", "migrate --workspace", "commit  --workspace"):
         assert rare not in hot, f"少见时刻规则回流到 author-memory.md：{rare}"
 

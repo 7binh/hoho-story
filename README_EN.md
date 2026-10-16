@@ -294,9 +294,9 @@ flowchart LR
 | Skill | Trigger | Description |
 |:------|:--------|:------------|
 | `story-setup` | `/story-setup` / `$story-setup` | Environment setup — Claude/Antigravity/OpenCode/Codex/ZCode/OpenClaw/Reasonix plus generic (safe merge) |
-| `story` | `/story` / `$story` / `/story dashboard` | Toolbox router, author-preference management, and local deconstruction/project dashboard |
-| `story-long-write` | `/story-long-write` | Long-form writing — outline building, character design, prose output |
-| `story-short-write` | `/story-short-write` | Short-form writing — emotion design, twist crafting, polish & delivery |
+| `story` | `/story` / `$story` / `/story dashboard` | Routes general intent and author-preference requests; local deconstruction/project dashboard |
+| `story-long-write` | `/story-long-write` | Long-form writing — outline building, character design, prose output, author-preference management |
+| `story-short-write` | `/story-short-write` | Short-form writing — emotion design, twist crafting, polish & delivery, author-preference management |
 | `story-deslop` | `/story-deslop` | De-AI-ify — detect and remove AI writing traces |
 
 **Advanced**: benchmark deconstruction, trend scans, importing drafts, multi-perspective review and covers, when you need them.
@@ -314,7 +314,7 @@ flowchart LR
 
 > `story-deslop` uses local prose linting: blocking applies only to deterministic style/punctuation issues, while other findings require read-through judgment; external detectors such as Zhuque are self-check references, not replacements for human review.
 
-Natural language also triggers: `帮我开书` ("help me start writing") → `story-long-write`, `这篇太AI了` ("this is too AI-ish") → `story-deslop`, `把我的书导进来` ("import my book") → `story-import`, `打开工作台` ("open the dashboard") → `story dashboard`, `记住我的写作习惯` ("remember my writing habits") → `story` author memory. Asking `沈栀现在什么状态` ("what's Shen Zhi's current status") searches project files, using `story-explorer` when the host supports it.
+Natural language also triggers: `帮我开书` ("help me start writing") → `story-long-write`, `这篇太AI了` ("this is too AI-ish") → `story-deslop`, `把我的书导进来` ("import my book") → `story-import`, `打开工作台` ("open the dashboard") → `story dashboard`, `记住我的写作习惯` ("remember my writing habits") → `story`, which routes the request to the appropriate writing skill to manage author memory. Asking `沈栀现在什么状态` ("what's Shen Zhi's current status") searches project files, using `story-explorer` when the host supports it.
 
 ## How it works
 

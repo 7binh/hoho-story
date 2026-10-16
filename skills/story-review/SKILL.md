@@ -12,13 +12,11 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 
 **执行铁律：审查是找问题，不是验证正确性。**
 
-**文风裁决**：正文写作、改写或审稿前先读 [references/style-resolution.md](references/style-resolution.md)，加载本书文风并形成 `style_resolution`；无作者记忆也执行。当前请求、本书文风和 active 偏好按维度覆盖通用 references；同一裁决交给后续执行者。
+**文风裁决**：先读 [references/style-resolution.md](references/style-resolution.md)，加载本书文风，复用调用方的 `style_resolution` 与作者偏好；单独调用时按当前请求与本书文风裁决。同一裁决交给后续执行者。
 
-## 作者习惯边界
+## 作者偏好边界
 
-若作者记忆 state 已存在，审查前用 `scripts/author_memory_commit.py query --workspace {工作区} --book-root {书目录} --kind delivery --kind interaction --kind prose_style [--genre {题材}] [--workflow 审稿]` 获取本次相关 active 条目（`--workspace`、`--kind` 必传；不传 `--book-root` 就拿不到本书级偏好；`--genre` 填本书题材类型）。它们只能帮助解释意图和组织报告，不能降低 rubric 严重度、把事实冲突判为无问题或跳过平台门禁；当前请求仍优先。完整规则见 [references/author-memory.md](references/author-memory.md)。
-
-用户对报告格式或协作方式作出稳定声明时，在本轮审查完成后用 `record` 记录，并按 author-memory.md「回执怎么告诉作者」转告；只记作者明确说的，一次性要求不记录，不从反复修改推断。审查发现、工具告警和助手建议本身绝不自动学习。
+只接收调用方已有的作者偏好，不查询或记录作者记忆；独立调用时不加载记忆文件。偏好只能帮助解释意图和组织报告，不能降低 rubric 严重度、把事实冲突判为无问题或跳过平台门禁；当前请求仍优先。
 
 ---
 
@@ -90,9 +88,6 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 | 平台 rubric | `story-review/references/rubrics/{fanqie,qidian,zhihu}.md` |
 | 标点预检脚本 | `story-review/scripts/normalize-punctuation.js` |
 | AI句式预检脚本 | `story-review/scripts/check-ai-patterns.js` |
-| 作者习惯协议 | `story-review/references/author-memory.md` |
-| 作者习惯整理、超编与迁移 | `story-review/references/author-memory-maintenance.md` |
-| 作者习惯事务脚本 | `story-review/scripts/author_memory_commit.py` |
 
 ### 内置审查基准包（路径不可读时必用）
 

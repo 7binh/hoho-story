@@ -12,22 +12,16 @@
     },
     {
       "name": "author-memory-reference",
-      "source": "skills/story/references/author-memory.md",
+      "source": "skills/story-long-write/references/author-memory.md",
       "targets": [
-        "skills/story-long-write/references/author-memory.md",
-        "skills/story-short-write/references/author-memory.md",
-        "skills/story-deslop/references/author-memory.md",
-        "skills/story-review/references/author-memory.md"
+        "skills/story-short-write/references/author-memory.md"
       ]
     },
     {
       "name": "author-memory-maintenance-reference",
-      "source": "skills/story/references/author-memory-maintenance.md",
+      "source": "skills/story-long-write/references/author-memory-maintenance.md",
       "targets": [
-        "skills/story-long-write/references/author-memory-maintenance.md",
-        "skills/story-short-write/references/author-memory-maintenance.md",
-        "skills/story-deslop/references/author-memory-maintenance.md",
-        "skills/story-review/references/author-memory-maintenance.md"
+        "skills/story-short-write/references/author-memory-maintenance.md"
       ]
     },
     {

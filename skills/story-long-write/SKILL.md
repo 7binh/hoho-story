@@ -29,9 +29,13 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 
 **文风裁决**：正文写作、改写或审稿前先读 [references/style-resolution.md](references/style-resolution.md)，加载本书文风并形成 `style_resolution`；无作者记忆也执行。当前请求、本书文风和 active 偏好按维度覆盖通用 references；同一裁决交给后续执行者。
 
+## 作者记忆管理
+
+管理习惯读 `references/author-memory.md`（整理、超编、迁移按其中指路）。仅管理习惯时完成即停，不建书、不写正文。
+
 ## 核心方法
 
-先明确每个场景的主导情绪，从对标中找有依据的剧情模式，把角色当功能位，用本书的角色和素材实现；写每章只读「不知道就会写错」的状态、伏笔与设定。契约与推进决策先过 `references/reader-contract-and-progression.md`「契约四问」。作者记忆：写正文时组装脚本已代查注入；其他任务直接跑 `{PYTHON} {skill 根}/scripts/author_memory_commit.py query --workspace {放 .active-book 的那层} --book-root {书目录} --kind …`（规划查 story_design、workflow、interaction，改稿查 prose_style、story_design；无记忆返回空），执行者只拿输出的 `lines`，当前请求与本书文风优先；作者说出要长期记住的偏好时才读 [references/author-memory.md](references/author-memory.md) 按它 `record` 写入、回传回执。
+先明确每个场景的主导情绪，从对标中找有依据的剧情模式，把角色当功能位，用本书的角色和素材实现；写每章只读「不知道就会写错」的状态、伏笔与设定。契约与推进决策先过 `references/reader-contract-and-progression.md`「契约四问」。作者记忆：写正文时组装脚本已代查注入；其他任务直接跑 `{PYTHON} {skill 根}/scripts/author_memory_commit.py query --workspace {放 .active-book 的那层} --book-root {书目录} --kind …`（规划查 story_design、workflow、interaction，改稿查 prose_style、story_design；无记忆返回空），执行者只拿输出的 `lines`，当前请求与本书文风优先。
 
 **本章技法（每章至多读一份）**：按细纲主功能选——打脸/逆袭（爽感释放）`style-combat-face.md`；身份/认知/立场反转（震撼+痛快）`long-reversal.md`；感情拉扯（意难平）`emotional-methods.md`，自己写时加 `emotion-on-page.md`；悬疑/惊悚/异常线索（紧张+好奇）`long-suspense.md`；日常装逼（期待感）`long-chapter-hooks.md`。都不对应就不读，按 writing-craft 写。交给写手时只在 prompt「本章技法」填类别，由写手整份读；主会话自己写正文时只读该文件的「决策路由」和它指向的那一节（先看标题定位，不整读），日更一批只读一份，按本批最需要的那章选，其余章按 writing-craft 写。作者先说情绪没说题材时按括号反查，再从 `long-genre-catalog.md` 找细分方向。
 

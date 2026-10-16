@@ -281,9 +281,9 @@ flowchart LR
 | Skill | 触发 | 说明 |
 |:------|:-----|:-----|
 | `story-setup` | `/story-setup` `$story-setup` `/准备写书` | 环境部署 · Claude/Antigravity/OpenCode/Codex/ZCode/OpenClaw/Reasonix + generic（已有配置安全合并） |
-| `story` | `/story` `$story` `/story dashboard` | 工具箱路由 · 模糊意图分发 + 作者习惯管理 + 本地拆文/项目 Dashboard |
-| `story-long-write` | `/story-long-write` `/写长篇` | 长篇写作 · 大纲搭建、人物设定、正文输出 |
-| `story-short-write` | `/story-short-write` `/写短篇` | 短篇写作 · 情绪设计、反转构思、精修出稿 |
+| `story` | `/story` `$story` `/story dashboard` | 工具箱路由 · 模糊意图与作者习惯请求分发 + 本地拆文/项目 Dashboard |
+| `story-long-write` | `/story-long-write` `/写长篇` | 长篇写作 · 大纲搭建、人物设定、正文输出、作者偏好管理 |
+| `story-short-write` | `/story-short-write` `/写短篇` | 短篇写作 · 情绪设计、反转构思、精修出稿、作者偏好管理 |
 | `story-deslop` | `/story-deslop` `/去AI味` | 去AI味 · 检测并清除 AI 写作痕迹 |
 
 **进阶**：拆对标书、扫榜、导入旧稿、多视角审稿、封面，需要时再用。
@@ -307,7 +307,7 @@ flowchart LR
 - 「这篇太 AI 了」→ `story-deslop`
 - 「把我的书导进来」→ `story-import`
 - 「打开工作台」→ `story dashboard`（本机浏览拆文库与写作项目，可轻量编辑）
-- 「记住我的写作习惯」→ `story` 作者记忆（原话证据、待确认、冲突替代）
+- 「记住我的写作习惯」→ `story` 路由到对应写作 skill，由它管理作者记忆（原话证据、待确认、冲突替代）
 - 「沈栀现在什么状态」→ 检索项目资料，宿主支持时交给 `story-explorer`
 
 ## 工作原理

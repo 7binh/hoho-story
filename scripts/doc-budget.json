@@ -56,9 +56,9 @@
       "why": "去AI味每章读。+200：Show Don't Tell 不再强制情绪外化为身体动作，补充选择/台词/物件/后果优先与功能性保留边界"
     },
     {
-      "path": "skills/story/references/author-memory.md",
+      "path": "skills/story-long-write/references/author-memory.md",
       "budget": 5450,
-      "why": "v0.8.2：作者每说一条长期偏好就整读（共享副本同步到长短篇、去味、审稿）。按作者时刻拆分，只留记一条／确认／替换／忘掉、边界优先级与查询解释；整理、超编、单书布局、迁移、commit、check、冲突候选落定移到 author-memory-maintenance.md（冷路径，不登记）。8954→约 5350，锁住拆分收益。"
+      "why": "v0.8.2：作者每说一条长期偏好就整读（由长篇写作维护真源，仅同步到短篇写作）。按作者时刻拆分，只留记一条／确认／替换／忘掉、边界优先级与查询解释；整理、超编、单书布局、迁移、commit、check、冲突候选落定移到 author-memory-maintenance.md（冷路径，不登记）。8954→约 5350，锁住拆分收益。"
     },
     {
       "path": "skills/story-long-write/references/banned-words.md",

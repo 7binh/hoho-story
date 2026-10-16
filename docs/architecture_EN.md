@@ -39,6 +39,8 @@ Agents read relevant character, dialogue and twist references as needed. Unread 
 
 The project keeps settings, outlines, prose and tracking in separate files. Each chapter loads relevant records and commits changes that actually happened, reducing reliance on the chat transcript.
 
+Only `story-long-write` and `story-short-write` manage and query author memory. `story` routes related requests; de-AI-ifying and review use the style requirements passed by the writing workflow.
+
 Author memory stays separate from any one book's continuity tracking and lives in two stores so memory travels with the book: the workspace `.story/作者记忆/` holds global, genre and workflow preferences (`AP` ids), and each book directory's `.story/作者记忆/` holds only that book's preferences (`BP` ids). Both share the same layout:
 
 ```text

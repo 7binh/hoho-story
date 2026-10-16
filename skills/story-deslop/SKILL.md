@@ -6,7 +6,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 ---
 # story-deslop：网文去AI味
 
-**文风裁决**：正文写作、改写或审稿前先读 [references/style-resolution.md](references/style-resolution.md)，加载本书文风并形成 `style_resolution`；无作者记忆也执行。当前请求、本书文风和 active 偏好按维度覆盖通用 references；同一裁决交给后续执行者。
+**文风裁决**：先读 [references/style-resolution.md](references/style-resolution.md)，加载本书文风，复用调用方的 `style_resolution` 与作者偏好；单独调用时按当前请求与本书文风裁决。同一裁决交给后续执行者。
 
 **改写重点：保留剧情功能，删掉空转解释与套话，按人物声线恢复自然节奏。**
 
@@ -46,9 +46,9 @@ AI味按风格问题处理：检查书面腔、机械对仗和重复解释，保
 
 去AI味治读感，不承诺任何分数结果。若用户贴出工具报告，只把能对应到正文的问题转成具体修改点；不写“0% AI / 100% 真人”，不注水、故意错字或打乱标点。去AI味仍以原文剧情边界为准，不把表达修复变成新增情节或新增事件链。
 
-### 作者习惯
+### 作者偏好边界
 
-若作者记忆 state 已存在，改写前用 `scripts/author_memory_commit.py query --workspace {工作区} --book-root {书目录} --kind prose_style [--genre {题材}] [--workflow 去AI味]` 获取匹配的 active 文风条目（`--workspace` 必传；`--genre` 填本书题材类型），把输出的 `lines`（≤2KB）交给 inline/spawn 执行者作为自然倾向，不逐条展示或最大化命中，不牺牲连贯、节奏和字数；当前请求、原文剧情功能和本 skill 保护规则优先。用户明确声明长期文风习惯时，改写后按 [references/author-memory.md](references/author-memory.md) 用 `record` 写入并按其「回执怎么告诉作者」转告；只记作者明确说的，一次性要求、反复修改、检测器 findings 和助手自己的结果不记录。`omitted_ids` 非空时，按 `omitted_summaries` 原话告诉作者哪些习惯没带上。
+只接收调用方已有的作者偏好，不查询或记录作者记忆；独立调用时不加载记忆文件。偏好作为自然倾向，不逐条追求命中，不牺牲连贯、节奏和字数；当前请求、原文剧情功能和本 skill 保护规则优先。
 
 ---
 
@@ -249,7 +249,6 @@ node scripts/normalize-punctuation.js <正文文件...>
 | [scripts/normalize-punctuation.js](scripts/normalize-punctuation.js) | 文件模式落盘后做确定性标点收尾；默认保留引号风格 |
 | [scripts/check-ai-patterns.js](scripts/check-ai-patterns.js) | 文件模式预检与复扫；各规则对台词豁免不同，破折号与部分工整并列也查引号内；只报告不改写 |
 | [scripts/check-degeneration.js](scripts/check-degeneration.js) | 文件模式「确定性收尾」复扫，只报告不改写 |
-| [references/author-memory.md](references/author-memory.md) + [scripts/author_memory_commit.py](scripts/author_memory_commit.py) | 读取或更新跨会话作者文风习惯时 |
 
 ---
 

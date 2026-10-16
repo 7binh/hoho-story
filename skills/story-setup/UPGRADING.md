@@ -1,5 +1,13 @@
 # 升级指南
 
+## 开发版：作者记忆集中到写作 skill
+
+本节针对尚未发布的开发版，下面的「当前版本」保留已发布版本的升级要求。
+
+- 作者记忆的管理、查询和写作注入由 `story-long-write` 与 `story-short-write` 负责；`story` 只路由习惯管理请求，去 AI 味与审查沿用写作流程传入的文风要求。
+- 使用开发版时，更新技能包后在写作项目根重跑 `/story-setup`（Codex 用 `$story-setup`），再新开会话。本次重跑只为同步项目指令中的作者习惯路由。
+- 旧作者记忆数据和格式不变，本次职责调整无需迁移数据。下方 v0.7.11 的两级存储迁移只适用于尚未完成该历史升级的项目。
+
 ## 当前版本
 
 发布版本 `v0.8.5`。`agents_version` 仍是 34（与 v0.8.2 相同）：从 v0.8.2 及之后的版本升级只需更新技能包并新开会话，不用重跑 `/story-setup`；从 v0.8.1 或更早升级，按下方「v0.8.2 必须重跑 story-setup」重跑一次。
@@ -291,6 +299,8 @@ OpenClaw / Reasonix / generic 三条路径的 skill 副本在项目 `skills/` �
 
 作者记忆从「一个工作区一份」改成两级：工作区 `.story/作者记忆/` 只存全局、题材、流程条目（编号 `AP`），每本书目录下的 `.story/作者记忆/` 存这本书的条目（编号 `BP`），记忆随书归档、迁移。同时不再从反复修改或成稿推断偏好：`record` 拒绝 `repeated_correction` / `inferred_pattern` 来源，存量条目照常可读、可确认、可退役。
 
+下方命令中的 `{所用写作 skill 根}` 指 `story-long-write` 或 `story-short-write` 的安装目录。
+
 迁移时按以下三点处理：
 
 1. 新的本书偏好必须传 `--book-root {书目录}` 才能写入；旧 skill 副本没带这个参数会报错，重跑 `/story-setup` 让脚本与文档同版。
@@ -298,7 +308,7 @@ OpenClaw / Reasonix / generic 三条路径的 skill 副本在项目 `skills/` �
 3. 对每本书运行一次即可整批搬家，幂等、中途失败直接重跑：
 
    ```text
-   {PYTHON} {story skill 根}/scripts/author_memory_commit.py migrate --workspace {工作区} --book-root {工作区}/长篇/{书名}
+   {PYTHON} {所用写作 skill 根}/scripts/author_memory_commit.py migrate --workspace {工作区} --book-root {工作区}/长篇/{书名}
    ```
 
    断言、原话证据、确认次数、重要度原样保留；与全局条目的冲突候选在迁移后退回待确认。也可以对 agent 说「整理作者记忆」，迁移会列为默认提案项。
@@ -306,7 +316,7 @@ OpenClaw / Reasonix / generic 三条路径的 skill 副本在项目 `skills/` �
 **单书布局**（`正文/`、`追踪/` 直接在工作区根）：书级数据存储在 `{工作区}/.story/作者记忆/书级/`，迁移时 `--book-root` 就传工作区本身：
 
    ```text
-   {PYTHON} {story skill 根}/scripts/author_memory_commit.py migrate --workspace {工作区} --book-root {工作区}
+   {PYTHON} {所用写作 skill 根}/scripts/author_memory_commit.py migrate --workspace {工作区} --book-root {工作区}
    ```
 
 书名默认取存量本书条目里的书名；存量里有多本书的条目时用 `--book {书名}` 指定。用过 main 上预发布版本、查询时报 `project-level state must not carry state.book` 的工作区，带 `--book-root {工作区}` 运行任一命令即自动修复，不丢条目。
