@@ -1169,11 +1169,11 @@ def main() -> None:
         # 短篇派写手的 prompt 同样随「只在交给写手时才用」迁到 agent-calls.md（v0.8.2）。
         REPO / "skills/story-short-write/references/agent-calls.md": (
             "作者偏好 query",
-            "\\n作者偏好：{",
+            "\n作者偏好：{",
         ),
         # 去味交给写手的 prompt 随「只在交给写手时才用」迁到 agent-calls.md（v0.8.3）。
         REPO / "skills/story-deslop/references/agent-calls.md": (
-            "\\n作者偏好：{",
+            "\n作者偏好：{",
         ),
         REPO / "skills/story-short-write/SKILL.md": (
             "query --workspace {工作区} --book-root {项目目录} --kind prose_style --kind story_design",
@@ -1184,7 +1184,8 @@ def main() -> None:
         REPO / "skills/story-long-write/references/workflow-daily.md": ("习惯没带上",),
     }
     for path, required_fragments in injection_contracts.items():
-        content = path.read_text(encoding="utf-8")
+        # 单行转义 prompt 与 fenced 多行 prompt 都必须实际传递同一字段。
+        content = path.read_text(encoding="utf-8").replace("\\n", "\n")
         for fragment in required_fragments:
             assert fragment in content, f"missing author-memory injection contract in {path}: {fragment}"
     # 只有写作 skill 拥有记忆协议和工具；其他 skill 通过调用方接收裁决。

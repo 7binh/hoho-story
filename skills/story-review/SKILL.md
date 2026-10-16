@@ -80,7 +80,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 |---|---|
 | 通用质量清单 | `story-review/references/review-quality.md` |
 | 通用内容评分 rubric | `story-review/references/quality-rubric.md` |
-| 去 AI 味方法 | `story-review/references/anti-ai-writing.md` |
+| 去 AI 味方法 | `story-review/references/expression.md` · `story-review/references/narrative-focus.md` · `story-review/references/story-logic.md` |
 | 剧情循环/高潮公式 | `story-review/references/plot-core-methods.md` |
 | 角色关系/好感度 | `story-review/references/character-relations.md` |
 | 对话质量 | `story-review/references/dialogue-mastery.md` |
@@ -104,7 +104,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 - 对话质量：是否有潜台词、信息控制、角色差异；说明书式对话至少 S2。
 - 设定一致性：不违背已写规则、时间线、角色属性；明确事实冲突通常 S1。
 - 文字自然度：具体、可感、动作承载信息；AI 腔、陈词滥调、总结体按影响定 S2/S3。
-- 句长节奏：叙述默认是逗号长句（一句用逗号串起 2-4 件事再落句号）；碎句和电报体（逗号之间连着都是 ≤5 字、通篇超短句像提纲）与 AI 腔同级，按影响定 S3/S2，不因「短=网文节奏」放行。
+- 句长节奏：按本书文风、语义承接与场景功能判断；机械碎句、动作清单或臃肿长句按影响定 S3/S2，不按统一字数或句长模板验收。
 - 标点节奏：标点是否服务语气/人物声线；通篇句号化、随机堆砌问号/感叹号，或残留 `……`/`——` 硬造停顿，按影响定 S3/S2。
 - 具体字数表达校验：正文用“这五个字 / 短短四字 / 三个字一落 / 八个字砸下去”等具体字数表达评价台词、题字、信件、念头或弹幕时，必须能确认统计口径、机器核对结果和叙事必要；不能确保字数计算正确时，按文字自然度问题处理，建议改成“这句话一落”“那几个字”“话音落下”等非具体数字表达。
 - 格式可读性：段落短、对话独立、无多余空行；格式阻碍阅读按 S3，严重混乱按 S2。
@@ -113,12 +113,11 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 - 关系进展：互动尺度必须匹配当前关系阶段；越界亲密、突然信任、突然敌对都需要铺垫，否则按影响定 S1/S2。
 - 伏笔状态：伏笔状态需可追踪；伏笔密度只作为结构风险提示，除非直接造成理解混乱，否则不升级到 S2+。
 
-AI 味 / 禁用词 fallback 速查：
-- 高频套话：`命运的齿轮开始转动`、`心猛地一沉`、`眼神复杂`、`深刻变化`、`踏上新的旅程`。
-- 章末总结体：`这一切都说明...`、`他终于明白...`、`新的篇章开始了...`。
-- 信息倾倒：角色直接说“我要解释世界观/规则/关系变化”。
-- 论文体/万能结论：过度使用“然而、与此同时、不可否认、这意味着”。
-- 处理原则：有原文证据才输出 finding；给出可执行替换方向，不只评价“AI 味重”。修法方向不默认「拆短 / 删虚词 / 剥标点」：把正常的逗号长句拆成碎句，与 AI 腔同样是问题。
+三层去味 fallback 速查：
+- 表达：套词、总结句、工整句式是否机械复现或重复意思？词语本身只是线索，直写情绪、纠错对比与文风允许的叙述可保留。
+- 用笔：关键交锋或决定是否被概括，次要流程是否过详？压缩、展开均应保住人物体验和必要承接。
+- 故事：行动有什么来由、解决依据从何而来、前后改变了什么？安静场景可承载关系与认知变化，不强求冲突。
+- 处理原则：有原文证据才输出 finding，指出阅读损失、最小建议与资料限制；只报告，不落改，不默认拆短、加动作或新增剧情。
 
 平台 fallback 摘要：
 - 番茄：强开局、强冲突、高频爽点/情绪反馈、低理解门槛。
@@ -153,8 +152,7 @@ AI 味 / 禁用词 fallback 速查：
    node scripts/check-degeneration.js --check <正文文件...>
    ```
    - 将 `ellipsis`、`double-hyphen`、`markdown-divider` 结果作为 `format` findings 合并进报告。`em-dash` 破折号只采用 `check-ai-patterns.js` 的语义改写建议（见下条）；`normalize-punctuation.js` 报的同一位置 `em-dash` 在合并时去重丢弃，避免同处出现「机械替换」与「按功能改写」两条相互冲突的 finding。另外人工检查标点节奏是否通篇句号化或随机堆砌，脚本不替代语气判断。
-   - `check-ai-patterns.js` 的 findings 合并进 `prose`：severity=blocking 的类别一律按 S2（当前为 `not-is-comparison` / `em-dash` / `voice-contrast` / `negation-parade` / `reverse-not-is` / `trailer-ending` / `trailer-summary`），修法直接采用检测器输出的建议（删否定铺垫/反差腔/排比否定/章尾预告腔/章尾状态总结句，直接写后项或具体动作；破折号按功能改成动作/短句/逗号/冒号）。
-   - 其余 prose findings（advisory）统一按 S3：只指出读感风险，不替代人工判断；功能性写法标 `[需复核]` 并保留。完整类别和修法见 `anti-ai-writing.md`。
+   - `check-ai-patterns.js` 的 blocking / advisory 都先作为 `prose` 候选，按 `style_resolution`、原文功能及三层方法逐条复核；确认造成具体阅读损失后，按下方严重度定义定级。功能性纠错、叙述与停顿保留，不把脚本级别直接换成必须修改的 finding。检测器改法仅作参考，不覆盖文风与事实边界。完整语义复核见 `expression.md`、`narrative-focus.md`、`story-logic.md`，只报告问题与建议，不落改。
    - `check-degeneration.js` 报告模型退化（逐字复读/截断/占位符/工程词泄漏），每条带 `severity: blocking|advisory`：blocking（复读/截断/tier1 工程词）作为 S1/S2 `prose` findings，修复建议是「重新生成该段，不是改写」；advisory（tier2 章节/歧义词）作为 S3。
    - 这三个预检脚本只读；`story-review` **不修改正文、设定或大纲文件**，需要自动修复正文时建议转 `/story-deslop`。full / lean 模式只有下方「追踪文件维护」允许修改 `追踪/`；分批审查的所有模式都可按 batch-review.md 写 **.story-review/state.md**，solo 除该状态外不写项目内容。
    - 默认 `--quote-mode keep`，不把知乎盐言短篇的 `「」` 当作问题；只有项目明确指定引号风格时才检查对应转换建议。

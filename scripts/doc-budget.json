@@ -51,9 +51,19 @@
       "why": "每章写作技法：场景交织、疏密、人物立场和收益刻度；质检用功能删除测试。 句子怎么连（+约 110）：作者读实测稿觉得电报体、句式不像中文；对照七猫人类语料，差在逗号罗列动作（2-3 倍）、「没A也没B」否定排比（3-14 倍）、对话语气词约一半。删感知素材库与物件类型速查腾出位置。"
     },
     {
-      "path": "skills/story-long-write/references/anti-ai-writing.md",
-      "budget": 14100,
-      "why": "去AI味每章读。+200：Show Don't Tell 不再强制情绪外化为身体动作，补充选择/台词/物件/后果优先与功能性保留边界"
+      "path": "skills/story-deslop/references/expression.md",
+      "budget": 3400,
+      "why": "表达层唯一方法源；重点合并电报体与短碎句，取代旧总指南与重复 Gate 详规，完整计入三层诊断路径。"
+    },
+    {
+      "path": "skills/story-deslop/references/narrative-focus.md",
+      "budget": 2500,
+      "why": "用笔层唯一方法源；详略、交锋、心理与复读方法完整计入，不因分文件少算同次加载。"
+    },
+    {
+      "path": "skills/story-deslop/references/story-logic.md",
+      "budget": 2200,
+      "why": "故事层唯一方法源；行为、因果、变化与授权边界完整计入三层诊断。"
     },
     {
       "path": "skills/story-long-write/references/author-memory.md",
@@ -62,8 +72,8 @@
     },
     {
       "path": "skills/story-long-write/references/banned-words.md",
-      "budget": 4100,
-      "why": "禁用词扫描每章读。+200：登记指尖轻叩、指节泛白、喉结滚动、声音放轻等成片反应簇及删除测试，不把单个身体词设为禁词 +100：禁用项服从作者明确表达选择，不再自称最高优先级。"
+      "budget": 4600,
+      "why": "共享信号索引；按语境与文风判定。作者要求保留长期积累的完整词项、句式分支和复合原例，恢复旧词表及完整指南中的识别语料；方法仍由三层文件维护，不恢复硬禁、密度配额或机械替换。"
     },
     {
       "path": "skills/story-long-write/references/long-format.md",
@@ -207,13 +217,13 @@
     },
     {
       "path": "skills/story-deslop/SKILL.md",
-      "budget": 9400,
-      "why": "独立去味入口，Claude narrative-writer 也预加载；详细 Gate 移至同源文件。 v0.8.3：交给写手的 prompt 移到 agent-calls；两套定档标准合成一套。"
+      "budget": 5400,
+      "why": "独立三层去味入口；词频定档与重复规则退出，锁住约4K精简，默认诊断方法完整计入调用路径。"
     },
     {
       "path": "skills/story-deslop/references/deslop-gates.md",
-      "budget": 5400,
-      "why": "语义去味按任务读取所选 Gate；独立去味详版与写手判据均为 main 原文，共享副本同步检查。 v0.8.2 +700：「写法抽查」表由 writing-craft 迁入（写手每次少读 0.8K，审查不再整读 writing-craft 11K）。"
+      "budget": 1000,
+      "why": "只保留活跃定点范围映射与执行接口；修法只在三份方法维护，退出旧详规。"
     },
     {
       "path": "skills/story-short-write/references/workflow-draft.md",
@@ -232,8 +242,8 @@
     },
     {
       "path": "skills/story-short-write/references/short-deslop.md",
-      "budget": 3050,
-      "why": "v0.8.2 登记：短篇 Phase 4 主会话自己去味时必读；写正文时不再预读，AI 腔由完成门槛的检测器兜底。"
+      "budget": 800,
+      "why": "短篇 Phase 4 只补卖点与定点修复范围，通用规则退出；完整诊断走独立去味调用，三方法计在完整路径。"
     },
     {
       "path": "skills/story-short-write/references/emotional-methods.md",
@@ -817,14 +827,29 @@
     {
       "label": "写手去味审查（narrative-writer 审查调用）",
       "agent": "skills/story-setup/references/templates/agents/narrative-writer.md",
-      "budget": 31800,
       "files": [
         "skills/story-setup/references/agent-references/style-resolution.md",
-        "skills/story-setup/references/agent-references/anti-ai-writing.md",
+        "skills/story-setup/references/agent-references/expression.md",
+        "skills/story-setup/references/agent-references/narrative-focus.md",
+        "skills/story-setup/references/agent-references/story-logic.md",
         "skills/story-setup/references/agent-references/deslop-gates.md",
         "skills/story-setup/references/agent-references/banned-words.md"
       ],
-      "why": "v0.8：去味审查按需调用时的实际加载量（原「正文 agent 基础规则」混算了写作与审查两种调用）。v0.8.2：「写法抽查」并入 deslop-gates，审查不再整读 writing-craft；评分文件只在打分任务读。"
+      "why": "三层诊断与定点修复共用写手调用；保守完整计入三份方法、范围协议与词表，不按 Gate 截取；短篇格式另登记条件读取。 作者要求保留旧词库及句式原例，完整计入恢复后的信号索引；相应提高路径预算，35K硬上限不变。",
+      "branches": [
+        {
+          "label": "长篇或独立改写",
+          "files": [],
+          "budget": 21800
+        },
+        {
+          "label": "短篇",
+          "files": [
+            "skills/story-setup/references/agent-references/format-and-structure.md"
+          ],
+          "budget": 25800
+        }
+      ]
     },
     {
       "label": "一致性检查（consistency-checker 每次调用）",
@@ -1342,89 +1367,100 @@
       "branches": [
         {
           "label": "世情打脸，主会话自己去味",
-          "budget": 31550,
+          "budget": 29600,
           "files": [
             "skills/story-short-write/references/genre-styles/世情打脸.md",
-            "skills/story-short-write/references/short-deslop.md"
+            "skills/story-short-write/references/short-deslop.md",
+            "skills/story-short-write/references/deslop-gates.md"
           ]
         },
         {
           "label": "双男主，主会话自己去味",
-          "budget": 30300,
+          "budget": 28350,
           "files": [
             "skills/story-short-write/references/genre-styles/双男主.md",
-            "skills/story-short-write/references/short-deslop.md"
+            "skills/story-short-write/references/short-deslop.md",
+            "skills/story-short-write/references/deslop-gates.md"
           ]
         },
         {
           "label": "复仇打脸，主会话自己去味",
-          "budget": 31000,
+          "budget": 29050,
           "files": [
             "skills/story-short-write/references/genre-styles/复仇打脸.md",
-            "skills/story-short-write/references/short-deslop.md"
+            "skills/story-short-write/references/short-deslop.md",
+            "skills/story-short-write/references/deslop-gates.md"
           ]
         },
         {
           "label": "宅斗宫斗，主会话自己去味",
-          "budget": 31350,
+          "budget": 29400,
           "files": [
             "skills/story-short-write/references/genre-styles/宅斗宫斗.md",
-            "skills/story-short-write/references/short-deslop.md"
+            "skills/story-short-write/references/short-deslop.md",
+            "skills/story-short-write/references/deslop-gates.md"
           ]
         },
         {
           "label": "总裁豪门，主会话自己去味",
-          "budget": 31850,
+          "budget": 29900,
           "files": [
             "skills/story-short-write/references/genre-styles/总裁豪门.md",
-            "skills/story-short-write/references/short-deslop.md"
+            "skills/story-short-write/references/short-deslop.md",
+            "skills/story-short-write/references/deslop-gates.md"
           ]
         },
         {
           "label": "悬疑，主会话自己去味",
-          "budget": 30650,
+          "budget": 28700,
           "files": [
             "skills/story-short-write/references/genre-styles/悬疑.md",
-            "skills/story-short-write/references/short-deslop.md"
+            "skills/story-short-write/references/short-deslop.md",
+            "skills/story-short-write/references/deslop-gates.md"
           ]
         },
         {
           "label": "民俗怪谈，主会话自己去味",
-          "budget": 30400,
+          "budget": 28450,
           "files": [
             "skills/story-short-write/references/genre-styles/民俗怪谈.md",
-            "skills/story-short-write/references/short-deslop.md"
+            "skills/story-short-write/references/short-deslop.md",
+            "skills/story-short-write/references/deslop-gates.md"
           ]
         },
         {
           "label": "沙雕脑洞，主会话自己去味",
-          "budget": 30950,
+          "budget": 29000,
           "files": [
             "skills/story-short-write/references/genre-styles/沙雕脑洞.md",
-            "skills/story-short-write/references/short-deslop.md"
+            "skills/story-short-write/references/short-deslop.md",
+            "skills/story-short-write/references/deslop-gates.md"
           ]
         },
         {
           "label": "甜宠，主会话自己去味",
-          "budget": 30000,
+          "budget": 28050,
           "files": [
             "skills/story-short-write/references/genre-styles/甜宠.md",
-            "skills/story-short-write/references/short-deslop.md"
+            "skills/story-short-write/references/short-deslop.md",
+            "skills/story-short-write/references/deslop-gates.md"
           ]
         },
         {
           "label": "追妻火葬场，主会话自己去味",
-          "budget": 31400,
+          "budget": 29450,
           "files": [
             "skills/story-short-write/references/genre-styles/追妻火葬场.md",
-            "skills/story-short-write/references/short-deslop.md"
+            "skills/story-short-write/references/short-deslop.md",
+            "skills/story-short-write/references/deslop-gates.md"
           ]
         },
         {
           "label": "冷门题材（按设定.md 记下的公式要点写），主会话自己去味",
-          "budget": 25900,
+          "budget": 23950,
           "files": [
-            "skills/story-short-write/references/short-deslop.md"
+            "skills/story-short-write/references/short-deslop.md",
+            "skills/story-short-write/references/deslop-gates.md"
           ]
         },
         {
@@ -1438,15 +1474,16 @@
         },
         {
           "label": "最重题材包＋情感桥段，主会话自己去味（最重组合）",
-          "budget": 34700,
+          "budget": 32750,
           "files": [
             "skills/story-short-write/references/genre-styles/总裁豪门.md",
             "skills/story-short-write/references/emotional-methods.md",
-            "skills/story-short-write/references/short-deslop.md"
+            "skills/story-short-write/references/short-deslop.md",
+            "skills/story-short-write/references/deslop-gates.md"
           ]
         }
       ],
-      "why": "v0.8.2：取代「短篇执行指令（不含技法参考）」——那条没算写正文时真正读的格式、底座、题材包与去味清单。写正文是构思之后的新时刻：只读两份设计文件（项目资料，不计）、本条文件与一个题材包；反转、反派、平台基调、冷门公式、对标召回都从 设定.md 取，不重读构思方法论。去味交给写手时主会话不读 short-deslop；emotional-methods 只在写羁绊或余韵时读。参考索引列出的其他按需资料未登记。 v0.8.2：场景写法随写正文时刻读 scene-craft；派写手的 prompt 只在去味交给写手时读 agent-calls（该分支计入）。"
+      "why": "v0.8.2：取代「短篇执行指令（不含技法参考）」——那条没算写正文时真正读的格式、底座、题材包与去味清单。写正文是构思之后的新时刻：只读两份设计文件（项目资料，不计）、本条文件与一个题材包；反转、反派、平台基调、冷门公式、对标召回都从 设定.md 取，不重读构思方法论。去味交给写手时主会话不读 short-deslop；emotional-methods 只在写羁绊或余韵时读。参考索引列出的其他按需资料未登记。 v0.8.2：场景写法随写正文时刻读 scene-craft；派写手的 prompt 只在去味交给写手时读 agent-calls（该分支计入）。 三层重构：Phase 4 保留定点精修，只读短篇适配与范围协议；作者要求完整诊断时独立 /story-deslop 调用，按去味主会话完整路径计，不与初稿构思方法叠读。"
     },
     {
       "label": "拆文每批（chapter-extractor 每次调用）",
@@ -1525,8 +1562,9 @@
         "skills/story-review/SKILL.md",
         "skills/story-review/references/style-resolution.md",
         "skills/story-review/references/solo.md",
-        "skills/story-review/references/anti-ai-writing.md#AI写作指纹（必须避免）",
-        "skills/story-review/references/anti-ai-writing.md#10 种 AI 写作模式检测",
+        "skills/story-review/references/expression.md",
+        "skills/story-review/references/narrative-focus.md",
+        "skills/story-review/references/story-logic.md",
         "skills/story-review/references/quality-rubric.md",
         "skills/story-review/references/banned-words.md"
       ],
@@ -1534,14 +1572,14 @@
         {
           "label": "通用 rubric",
           "files": [],
-          "budget": 26500
+          "budget": 27800
         },
         {
           "label": "平台 rubric",
           "files": [
             "skills/story-review/references/rubrics/zhihu.md"
           ],
-          "budget": 26950
+          "budget": 28400
         },
         {
           "label": "分批审查（平台 rubric）",
@@ -1549,36 +1587,37 @@
             "skills/story-review/references/rubrics/zhihu.md",
             "skills/story-review/references/batch-review.md"
           ],
-          "budget": 27900
+          "budget": 29400
         }
       ],
-      "why": "v0.8.2：一人审恢复读 banned-words——预检脚本对高频套话只做密度统计，一级词不逐个报；AI 味判断读 anti-ai-writing 的「AI写作指纹」「10 种 AI 写作模式检测」。为容纳它，审稿入口把只在派子代理时用的综合裁决、报告模板、story-explorer 预查询迁到 agent-prompts，把只在分批时用的跨批规则迁到 batch-review（另计分支）。 作者记忆拆分后参考表多一行维护文件指路。 v0.8.3：solo.md 只让读 anti-ai-writing 的两节，按这两节计（原先按整份计，多算约 5K）。"
+      "why": "完整审稿无论表层轻重均整读表达、用笔、故事三份方法；仅报告，不执行改写。所有方法全额计入，平台 rubric 与分批规则仍按原条件加载。 作者要求保留旧词库及句式原例，完整计入恢复后的信号索引；相应提高路径预算，35K硬上限不变。"
     },
     {
       "label": "去AI味主会话",
       "files": [
         "skills/story-deslop/SKILL.md",
-        "skills/story-deslop/references/style-resolution.md"
+        "skills/story-deslop/references/style-resolution.md",
+        "skills/story-deslop/references/expression.md",
+        "skills/story-deslop/references/narrative-focus.md",
+        "skills/story-deslop/references/story-logic.md",
+        "skills/story-deslop/references/deslop-gates.md",
+        "skills/story-deslop/references/banned-words.md"
       ],
       "branches": [
         {
-          "label": "只检测或交给写手",
+          "label": "交给写手",
           "files": [
             "skills/story-deslop/references/agent-calls.md"
           ],
-          "budget": 11550
+          "budget": 20600
         },
         {
-          "label": "主会话自己改",
-          "files": [
-            "skills/story-deslop/references/deslop-gates.md",
-            "skills/story-deslop/references/anti-ai-writing.md",
-            "skills/story-deslop/references/banned-words.md"
-          ],
-          "budget": 34250
+          "label": "只检测或主会话自己改",
+          "files": [],
+          "budget": 20300
         }
       ],
-      "why": "v0.8.2：交给 narrative-writer 时主会话不读去味规则（写手自己的审查路径另有登记）；主会话自己改时读删除保护、改写方法与词表。 合并后 +45：降级提示改白话＋技术备注行、作者记忆维护文件指路。 v0.8.3：交给写手的 prompt 移到 agent-calls（只在交给写手时读，计入该分支）；两套定档标准合成一套。"
+      "why": "独立去味主会话先完整诊断，再决定是否委派；所有分支均完整计三份方法、范围协议和词表，不用检测器扫描代替诊断。写手的后续执行另计自己的完整方法路径。 作者要求保留旧词库及句式原例，完整计入恢复后的信号索引；相应提高路径预算，35K硬上限不变。"
     },
     {
       "label": "部署写作环境（story-setup）",
