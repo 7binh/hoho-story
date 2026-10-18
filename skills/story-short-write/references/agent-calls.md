@@ -6,7 +6,7 @@
 
 spawn `Agent(subagent_type: "narrative-writer", prompt: ...)`，只传项目目录、输出文件、目标情绪、题材包要点、小节大纲、角色、主/副对标召回摘要、本书文风全文路径与 style_resolution、作者偏好 query 输出的 lines、格式硬约束和写作硬约束，并传入检查分工：本批只做内容覆盖与格式自检，完整语义去味由 Phase 4 负责，最终文件扫描由主会话负责。
 
-写手读不到本 skill 的 references，主会话把要点摘进 prompt：题材包要点取 `设定.md`「题材招式」及题材包的腔调、开篇收尾招式、情绪烈度；写作硬约束取 `short-craft.md` 第 2、8 节与 `scene-craft.md` 要点，人称腔调与叙述姿态按题材包；格式硬约束取 `设定.md`「平台基调」与 `short-format.md`。主会话收到结果后，按 workflow-draft.md 的格式规范重排，再写入 `正文.md`。
+写手读不到本 skill 的 references，主会话把要点摘进 prompt。题材包要点取 `设定.md`「题材招式」及题材包的腔调、开篇收尾招式、情绪烈度；写作硬约束取 `short-craft.md` 第 2、8 节与 `scene-craft.md` 要点，人称腔调与叙述姿态按题材包；格式硬约束取 `设定.md`「平台基调」与 `short-format.md`。主会话收到结果后，按 workflow-draft.md 的格式规范重排，再写入 `正文.md`。
 
 ## 精修去味
 

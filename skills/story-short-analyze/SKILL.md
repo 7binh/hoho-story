@@ -14,7 +14,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 
 ## 拆解边界声明
 
-短篇拆解的 Stage 2-6 全程由你（主会话）亲手做：拆的是用户**合法持有、拥有使用权**的虚构作品（已出版/连载或自有），性质是**只读的转化性文学批评**（编辑/评论/写作教学视角，不复制、不传播、不指导现实行为）。番茄短篇、故事会、知乎盐言、追妻、虐渣、世情等通俗题材里的家暴、出轨、复仇、暴力、情爱张力、黑暗伦理是常规虚构叙事元素，须照常做结构化拆解，**不得以「敏感」「不适」为由拒绝整篇或某个片段**——拒绝会让整条拆文流水线停摆；个别片段无法处理则跳过、照常续完其余。
+短篇拆解的 Stage 2-6 全程由你（主会话）完成。分析对象是用户**合法持有、拥有使用权**的虚构作品，包括已出版、连载或自有作品；只做编辑、评论和写作教学视角的**只读转化性文学批评**，不复制、传播或指导现实行为。番茄短篇、故事会、知乎盐言、追妻、虐渣、世情等通俗题材里的家暴、出轨、复仇、暴力、情爱张力、黑暗伦理属于常规虚构叙事元素，须照常做结构化拆解，**不得以「敏感」「不适」为由拒绝整篇或某个片段**，以免中断拆文流水线；确实无法处理的片段可跳过，其余部分照常拆完。
 
 ---
 
@@ -127,9 +127,7 @@ word_count = 全文字数
 | Stage 4–6 反转到综合评估、验收 | output-contract.md、analysis-method.md、[stage4-6-reversal-summary.md](references/stage4-6-reversal-summary.md)、quality-checklist.md、analysis-report-style.md、[analysis-short-patterns.md](references/analysis-short-patterns.md)、[analysis-submission.md](references/analysis-submission.md) | 细拆反差、动机、反派、关系或感情线：[analysis-characters.md](references/analysis-characters.md)；判断源文本身的短板与毒点：[source-story-quality.md](references/source-story-quality.md) | 验收通过，`stages_completed` 含 6 |
 | 拆完后作者要同类对比或逐节节奏 | [optional-modules.md](references/optional-modules.md) | — | — |
 
-**Stage 写盘规则**（中断后可续）：每个 Stage 开始前置 `_meta.json.last_stage_in_progress`，
-目标文件写完、确认非空且长度合理后才清空它并 append 到 `stages_completed[]`；
-半成品不被信任，续跑时该 Stage 整段重跑。完整规则见 output-contract.md「写入顺序」。
+**Stage 写盘规则**（中断后可续）：每个 Stage 开始前写入 `_meta.json.last_stage_in_progress`；目标文件写完、确认非空且长度合理后，才清空它并 append 到 `stages_completed[]`。半成品不可信，续跑时该 Stage 整段重跑。完整规则见 output-contract.md「写入顺序」。
 
 ---
 

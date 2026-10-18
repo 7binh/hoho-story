@@ -45,14 +45,14 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 
 ## 书目录判定
 
-本文件里"书目录""当前书"都按这一条找：
+本文件的"书目录""当前书"均按此查找：
 
 1. 项目根有 `.active-book` 且指向项目内一个存在的目录 → 就是它。
 2. 否则在项目根往下最多 4 层找，跳过以 `.` 开头的目录、`node_modules`、`拆文库/`、`对标/`：
    - 含 `追踪/`、`正文/` 子目录或 `正文.md` 文件的目录（与写作 hook 同一口径）；
    - 刚定完方向、还没有正文的长篇：含 `设定/题材定位.md` 的目录；
    - 构思中、还没有正文的短篇：同时有 `设定.md` 与 `小节大纲.md` 的目录。
-   找到多本又没有 `.active-book` 时，用到"当前书"就问作者是哪本（做法同「多书切换」）。
+   找到多本又没有 `.active-book` 时，需要"当前书"就问作者是哪本（做法同「多书切换」）。
 3. 篇幅：有 `正文/` 或 `设定/` 子目录的是长篇，有 `正文.md` 或 `设定.md` 文件的是短篇。
 
 没找到任何书目录：创建写作项目时先运行 `/story-setup`；只讨论结构、选题，或要扫榜、拆文时直接路由。找到了：按目标 skill 自己的环境检查继续，需要初始化或补部署时运行 `/story-setup`。
@@ -85,7 +85,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 | 写到哪了 | `progress` |
 | 两个角色现在什么关系 | `relationship` |
 
-一句话里问了几类，就分几次调用或挑最主要的一类；问的是创作建议而不是查已有内容时，不交给它，主会话直接答。
+一句话含多类查询时，分次调用或只选最主要的一类；问的是创作建议而不是查已有内容时，不交给它，主会话直接答。
 
 「查资料」交 `story-researcher`，prompt 按下面写，没有的可选项整行省略：
 
@@ -101,7 +101,7 @@ cdp_port：{可选：Chrome 调试端口不是 9222 时写}
 
 > Spawn 版本提示（不阻断 spawn）：先读取项目根 `.story-deployed` 的 `agents_version`。与本版 `agents_version: 36` 不一致时（标记缺失、字段缺失/非整数、小于或大于 36）**照常按文件存在性检查并 spawn**，但只检查当前运行时的 canonical 目录；同时用一句白话提示作者「查资料助手是旧版，运行 /story-setup 后新开会话」，`Notice: agents bundle 版本不匹配（项目 {N}，本版 36）` 原文写进回答最末一行「技术备注：」；大于 36 时额外提示先更新 oh-story-claudecode，不要用本地旧版 setup 降级覆盖。只有 agent 文件缺失、或运行时不暴露 custom agent 时才降级 solo/direct，`Fallback: ... -> solo` 同样只进技术备注行。
 
-走助手前先做轻量可用性检查（路由只做这一层，不承担全局部署策略）：当前不在子代理上下文、当前运行时的 Agent/Task 或 `invoke_subagent` 工具可用，且对应部署文件存在（Claude `.claude/agents/*.md`、OpenCode `.opencode/agents/*.md`、Codex `.codex/agents/*.toml`、Antigravity `.agents/agents/agent-name/agent.md`，其中 `agent-name` 为目标 agent 名）→ 可尝试 spawn。Antigravity 用 `invoke_subagent` + 同名 `TypeName`，不得因其他端文件存在而误判。任一不满足，或运行时返回 unknown agent / 未暴露 custom-agent registry，则降级，不硬失败：
+走助手前先做轻量可用性检查（路由只做这一层，不承担全局部署策略）：当前不在子代理上下文、当前运行时的 Agent/Task 或 `invoke_subagent` 工具可用，且对应部署文件存在（Claude `.claude/agents/*.md`、OpenCode `.opencode/agents/*.md`、Codex `.codex/agents/*.toml`、Antigravity `.agents/agents/agent-name/agent.md`，其中 `agent-name` 为目标 agent 名）→ 可尝试 spawn。Antigravity 用 `invoke_subagent` + 同名 `TypeName`，不得因其他端文件存在而误判。任一不满足，或运行时返回 unknown agent / 未暴露 custom-agent registry，则降级处理：
 
 - `story-explorer` 不可用 → 主会话直接用 Read/Grep 从书目录检索（角色状态、伏笔、进度、设定），回答前说一句「查资料助手没启用，这次我直接翻项目文件」；项目尚未部署时提示先 `/story-setup`。
 - `story-researcher` 不可用 → 主会话用当前可用的搜索能力回答，回答前说一句「查资料助手没启用，这次我直接搜」；搜不到就如实说明。
@@ -143,7 +143,7 @@ cdp_port：{可选：Chrome 调试端口不是 9222 时写}
 
 符号链接不作为项目标记，只有单个 `正文.md` 的资料目录不识别为写作项目。浏览器可编辑 `.md`、`.txt`、`.json`、`.yaml`、`.yml`、`.toml`；保存或确认删除时核对文件内容版本，避免覆盖外部修改。
 
-停止服务时终止对应的 Node 长运行进程即可。若用户只问用法，不要替他启动；告诉他说 `/story dashboard`（按上方宿主写法替换）。
+停止服务时终止对应的 Node 长运行进程即可。若用户只问用法，不要替他启动；告诉用户用 `/story dashboard`（按上方宿主写法替换）。
 
 ## 版本更新检查
 

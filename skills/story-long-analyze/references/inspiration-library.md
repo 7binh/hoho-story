@@ -40,13 +40,13 @@ story-long-analyze 的可选后置管道：把 Stage 3 已抽象好的 EM 机制
 - 完整卡（读者想看什么/情绪链/戏剧单元/可替换项/不可照搬 五字段齐）登记为 `grade=full`；「其他机制索引」条目登记为 `grade=index`。
 - 先用只读的 `check-atoms`（与 register-atoms 同参数）自检：输出卡数、索引数、角色名单规模与全部问题，不写文件。所有卡的问题一次报全，有任一 error 就整体不写盘。
 - 一次原子写入、重跑逐字节幂等；多本书逐本串行登记，不要并行跑 `register-atoms`。本步不得调用模型重新概括机制。
-- 专名检查的角色名单取自工作区 `拆文库/{书}/角色/`，工作区从 `--root` 向上找含 `拆文库/` 的目录；输出恒带 `character_roster` 数。
+- 专名检查的角色名单取自 `拆文库/{书}/角色/`；从 `--root` 向上查找含 `拆文库/` 的工作区，输出恒带 `character_roster` 数。
 
-报错怎么修（error 都回 Stage 3 改 `剧情/情绪模块.md` 再登记；warning 人工复核）：
+报错处理：error 都回 Stage 3 改 `剧情/情绪模块.md` 再登记，warning 由人工复核。
 
 | 报错 | 意思 | 怎么修 |
 |---|---|---|
-| `em_fields_missing` / `em_field_value_empty` | 五个门禁字段缺了，或字段在而值空 | 补齐；表格写法把整段值写进格子，`- **字段**：` 列表写法的值可以接在字段名行之后多行写 |
+| `em_fields_missing` / `em_field_value_empty` | 五个必填字段缺失或值空 | 补齐；表格写法把整段值写进格子，`- **字段**：` 列表写法的值可以接在字段名行之后多行写 |
 | `em_title_missing` / `em_header_unrecognized` / `em_field_duplicate` | 卡头不是 `### EM-xxx 名称`、标题行认不出、同卡字段重复 | 多半是卡被截断或并进了上一张，按模板重写卡头 |
 | `source_specific_name_in_mechanism` / `replaceable_antipattern` | 本卡「不可照搬」点名的专名又出现在标题、读者想看什么、情绪链、戏剧单元或可替换项里，或可替换项写成「专名→任意X」 | 改成功能位；「不可照搬」字段本身点名专名是它的职责，不算 |
 | `leak_suspect`（warning） | 只是角色卡文件名子串命中，没有佐证 | 人工看命中字段，确认不是专名就保留 |

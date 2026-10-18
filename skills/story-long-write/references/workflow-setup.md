@@ -71,7 +71,7 @@
 
 已部署时按 [agent-calls.md](agent-calls.md) 交给它们；不可用则主会话直接执行。
 
-主会话自己定设定时读 `references/character-basics.md`、`references/character-relations.md`「人物关系类型」一节、`references/long-genre-mechanics.md`「核心梗三层递进设计」「金手指」两节、`references/reader-contract-and-progression.md`；女频另读 `references/female-audience-writing.md`；有感情线时读 `references/character-relations.md`「感情线阶段」一节；对标登记 ≥2 本时读 `references/cross-book-recall.md`，副对标 anchor 入「对标分析」表附录；有 `灵感库/` 时可按它「公共灵感标签召回」以「适用阶段=设定」查 Top 8 active CBA，零命中不阻塞。
+主会话自己定设定时读 `references/character-basics.md`、`references/character-relations.md`「人物关系类型」一节、`references/long-genre-mechanics.md`「核心梗三层递进设计」「金手指」两节、`references/reader-contract-and-progression.md`；女频另读 `references/female-audience-writing.md`；有感情线时读 `references/character-relations.md`「感情线阶段」一节；对标登记 ≥2 本时读 `references/cross-book-recall.md`，把副对标锚点写进「对标分析」表附录；有 `灵感库/` 时可按它「公共灵感标签召回」以「适用阶段=设定」查 Top 8 active CBA，零命中不阻塞。
 
 ---
 

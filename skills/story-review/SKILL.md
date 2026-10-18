@@ -147,7 +147,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 
    - 短篇另按 `设定.md`「平台基调」核对格式、引号和导语。
    - 技术备注行的 Rubric 写叠加的平台表（`fanqie | qidian | zhihu`），不叠加写 `generic`；括号里文件可读写 `file`，用了内置摘要写 `embedded`。
-5. **形成审查基准包摘要**：把已加载的文件内容或内置 fallback 摘要压缩为 5-12 条审查标准，后续 solo 和子 Agent 都必须使用这份摘要。审查提示词要按摘要判断的剧情循环、高潮构建、关系进展（审第 1-3 章时加开头新鲜度）各留一条。摘要必须保留一条句长标准：叙述默认是逗号长句，碎句和电报体与 AI 腔同级处理，不因「短」放行；本书文风另有约定时按文风。
+5. **形成审查基准包摘要**：把已加载的文件内容或内置 fallback 摘要压缩为 5-12 条审查标准，后续 solo 和子 Agent 都必须使用这份摘要。审查提示词要各保留一条剧情循环、高潮构建和关系进展的判断，审第 1-3 章时再加开头新鲜度。摘要必须保留一条句长标准：叙述默认是逗号长句，碎句和电报体与 AI 腔同级处理，不因「短」放行；本书文风另有约定时按文风。
 6. **确定性预检（只报告，不修改）**：当审查范围包含本地正文文件路径时，运行本 skill 自带脚本：
    ```bash
    node scripts/normalize-punctuation.js --check <正文文件...>
@@ -177,7 +177,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
   fix: "可执行修改建议"
 ```
 
-严重度定义（S1–S4 的级别与长篇写作、检测器相同；审稿报告给作者的小节标题按级别写：S1、S2 归「必须改」，S3 归「建议改」，S4 归「可以不改」）：
+严重度定义：S1–S4 的级别与长篇写作、检测器相同；审稿报告的小节标题按级别写，S1、S2 归「必须改」，S3 归「建议改」，S4 归「可以不改」：
 - **S1**：会破坏主线、角色动机、世界规则或读者信任，需优先修。
 - **S2**：明显影响章节效果、留存、节奏、人物可信度，本轮要修。
 - **S3**：局部质量问题，如措辞、轻微格式、局部节奏，可排期修。
@@ -205,7 +205,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 
 ## 追踪文件维护
 
-长篇工程（有 `追踪/_tracking-state.json`）且实际模式是 full/lean 时，收尾读 [references/review-tracking.md](references/review-tracking.md) 修订追踪；solo 不改 `追踪/`，按 solo.md 第 5 步写进报告。
+有 `追踪/_tracking-state.json` 的长篇工程且实际模式是 full/lean 时，收尾读 [references/review-tracking.md](references/review-tracking.md) 修订追踪；solo 不改 `追踪/`，按 solo.md 第 5 步写进报告。
 
 ## 流程衔接
 

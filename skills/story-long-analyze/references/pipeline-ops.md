@@ -34,7 +34,7 @@ Stage 4 另用 `render_relation_chart.py` 从 `角色/角色关系.md` 生成人
 
 ## 2. 需要原文时建立或校验索引
 
-完整旧成果默认直接使用和纯旧成果增强无需索引。全新或部分完成且仍需读取原文时运行；只补文风时按 style-profile-generator.md 单独建索引：
+完整旧成果默认直接使用；纯增强也无需索引。全新或部分完成且仍需读取原文时运行；只补文风时按 style-profile-generator.md 单独建索引：
 
 ```text
 "{PYTHON}" "{story-long-analyze skill 根}/scripts/build_chapter_index.py" \

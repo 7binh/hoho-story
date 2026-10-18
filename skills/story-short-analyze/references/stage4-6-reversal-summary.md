@@ -1,6 +1,6 @@
 # Stage 4–6：反转与写作手法、人物与首尾、综合评估
 
-Stage 4–6 时刻读本文件。方法在前，输出模板在后；每个 Stage 写完按 [quality-checklist.md](quality-checklist.md) 对应小节自检。结构模式、人物关系、投稿层、源文短板的判断方法在各自的观察标尺里，读哪份按入口「按时刻读」。
+Stage 4–6 时刻读本文件。方法在前，输出模板在后；每个 Stage 写完按 [quality-checklist.md](quality-checklist.md) 对应小节自检。结构模式、人物关系、投稿层、源文短板的判断方法在各自的观察标尺里，所读文件以入口「按时刻读」为准。
 
 ## 方法
 
@@ -565,7 +565,7 @@ Stage 4–6 时刻读本文件。方法在前，输出模板在后；每个 Stag
 
 ### _meta.json.structure_counts 产出模板
 
-> Stage 6 内容写完时，把报告里已数出的结构计数写入 `_meta.json.structure_counts`。计数照实填，可以为 0；分析正文只写在 `拆文报告.md`，不在 JSON 里重讲。
+> Stage 6 内容写完时，把报告中的结构计数写入 `_meta.json.structure_counts`。计数照实填，可以为 0；分析正文只写在 `拆文报告.md`，不在 JSON 里重讲。
 > 字段定义与校验见 [output-contract.md](output-contract.md)。
 
 ```jsonc

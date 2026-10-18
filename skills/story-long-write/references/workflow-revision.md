@@ -1,6 +1,6 @@
 # workflow-revision.md：大修工作流
 
-作者说「修改／回炉／重写第X章」时用本文件；只改细纲走 workflow-outline.md。作者只说读者反应或感觉（拖、没追读、憋屈、变味），没点到改哪里时，先读 [revision-diagnosis.md](revision-diagnosis.md)，作者选定章后再走 Step 1；否则作者要说清是哪一章，推断不出就问。
+作者说「修改／回炉／重写第X章」时用本文件；只改细纲走 workflow-outline.md。作者只说读者反应或感受（拖、没追读、憋屈、变味），没指出改哪儿时，先读 [revision-diagnosis.md](revision-diagnosis.md)，作者选定章后再走 Step 1；其他情况须明确章节，无法推断就问。
 
 ---
 

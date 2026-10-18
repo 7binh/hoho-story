@@ -1,18 +1,18 @@
 # 黑岩短篇：采集与分析
 
-作者选择黑岩时读取。这里采的是黑岩管理后台的书库列表，反映近期上架和创作的分布，不是热度榜：没有阅读、收藏等热度数字，不能据此说哪本火。
+作者选择黑岩时读取。采的是黑岩管理后台的书库列表，反映近期上架作品的题材分布，不是热度榜：没有阅读、收藏等热度数字，不能据此说哪本火。
 
-需要作者有能登录 `manage.zhangwenpindu.cn` 的黑岩后台账号。先用 `/browser-cdp` 启动 Chrome，请作者在里面手动登录。没有账号或采集失败时继续其他平台，并在报告里说明未包含黑岩。
+作者需有能登录 `manage.zhangwenpindu.cn` 的黑岩后台账号。先用 `/browser-cdp` 启动 Chrome，请作者在里面手动登录。没有账号或采集失败时继续其他平台，并在报告里说明未包含黑岩。
 
 ## 页面与命令
 
 书库列表：manage.zhangwenpindu.cn/books/booklist
 
-`node scripts/heiyan-booklist-scraper.js --channel male|female|all --pages 3 --detail --outdir {输出目录}`，文件名 `黑岩书库列表_{male/female/all}_{YYYYMMDD}.md`。每页 20 本；`--detail` 逐本取标签和简介，每本约半秒，短篇分析靠它判断情绪，默认带上。
+`node scripts/heiyan-booklist-scraper.js --channel male|female|all --pages 3 --detail --outdir {输出目录}`，文件名 `黑岩书库列表_{male/female/all}_{YYYYMMDD}.md`。每页 20 本；`--detail` 逐本取标签和简介，每本约半秒，判断情绪要靠这些信息，默认带上。
 
 ## 字段
 
-书名、作者、频道/类型、字数、价格、创建和更新时间；带 `--detail` 另有标签和简介。聚合时类型归为题材；代表作按标签贴合方向挑，列表顺序不代表热度。
+书名、作者、频道/类型、字数、价格、创建和更新时间；加 `--detail` 可取标签和简介。聚合时类型归为题材；代表作按标签贴合方向挑，列表顺序不代表热度。
 
 ## 采集出问题
 

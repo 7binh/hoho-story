@@ -30,7 +30,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 ## 运行约定
 
 - `{PYTHON}`：依次试 `python3`、`python`、`py -3`，用第一个能运行的。`{story-long-analyze skill 根}` 是本文件所在目录，`{拆文目录}` 是 `拆文库/{书名}/`。
-- 首次拆一本书时把作者给的 TXT 存为 `{拆文目录}/原文/原文.txt`；文件不是 UTF-8（常见 GBK）时先转成 UTF-8 再存，子代理按行号读原文才不会乱码。
+- 首次拆一本书时，把作者给的 TXT 存为 `{拆文目录}/原文/原文.txt`；若编码不是 UTF-8（常见为 GBK），先转成 UTF-8，否则子代理按行号读取时会乱码。
 - 全文不足 2 万字或认不出章节标题时多半是短篇，建议作者改用 `/story-short-analyze`；作者坚持或由导入调用（篇幅已在导入时定好）时照常按长篇拆。
 
 ## 按时刻读
@@ -75,7 +75,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 | `stage6_style` | Stage 6：文风 |
 | `stage3`、`stage4`、`stage5`、`stage6` | 没标完成：产物都在且合格就只 `mark-stage`，不重写；缺了才重做 |
 
-有多项时按 Stage 顺序补，每补完一项就标该阶段。情绪模块卡字段不全（灵感库登记报错）时检查器不报缺：作者同意后把旧 `剧情/情绪模块.md` 复制到 `_analysis_cache/legacy/`，按 Stage 3 只改出错的卡，再标 `stage3`。Stage 3–5 只用已有成果和批次缓存，不读原文；没有批次缓存的旧项目用 `digest` 取逐章字段，再加上已有剧情、关系资料。写作端「对标书还缺情绪/节奏分析」「缺文风」就是这里的 Stage 3、Stage 6。
+有多项时按 Stage 顺序逐项补完并标记。情绪模块卡字段不全（灵感库登记报错）时，检查器不会报缺：作者同意后把旧 `剧情/情绪模块.md` 复制到 `_analysis_cache/legacy/`，按 Stage 3 只改出错的卡，再标 `stage3`。Stage 3–5 只用已有成果和批次缓存，不读原文；没有批次缓存的旧项目用 `digest` 取逐章字段，再加上已有剧情、关系资料。写作端「对标书还缺情绪/节奏分析」「缺文风」分别对应这里的 Stage 3、Stage 6。
 
 ### 固定交付接口
 

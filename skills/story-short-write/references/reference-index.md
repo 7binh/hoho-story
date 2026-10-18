@@ -5,7 +5,7 @@
 | 文件 | 何时加载 |
 |------|----------|
 | [submission-craft.md](submission-craft.md) | 构思：定平台、导语写法、字数区间、付费点 |
-| [genre-styles/](genre-styles/) | 定方向后按题材读一个风格包 |
+| [genre-styles/](genre-styles/) | 确定题材后读一个风格包 |
 | [genre-writing-formulas.md](genre-writing-formulas.md) | 冷门题材结构骨架（核心 10 题材用 genre-styles/） |
 | [short-reversal.md](short-reversal.md) · [villain-and-reveal.md](villain-and-reveal.md) | 设计反转；设计反派、真相揭露与报应 |
 | [emotional-methods.md](emotional-methods.md) · [hooks-chapter.md](hooks-chapter.md) | 设计情感结构（三板斧 / 拉扯节奏）；节尾钩子与段落钩子 |

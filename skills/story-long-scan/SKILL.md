@@ -54,14 +54,14 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 命令里的 `scripts/` 相对本 skill 根目录。
 
 1. 每次扫榜在工作目录新建 `扫榜/{YYYYMMDD}/`（同日再扫加 `-2`），下文 `{outdir}` 指它。不往旧目录追加，聚合会混进旧榜。
-2. 只读所选平台那一份：[起点](references/platform-qidian.md) / [番茄](references/platform-fanqie.md) / [七猫](references/platform-qimao.md) / [晋江](references/platform-jjwxc.md) / [刺猬猫](references/platform-ciweimao.md)。按 Phase 1 的频道和「看什么」跑里面的默认命令；需要 Chrome 的平台先 `/browser-cdp` 启动。
+2. 只读所选平台参考：[起点](references/platform-qidian.md) / [番茄](references/platform-fanqie.md) / [七猫](references/platform-qimao.md) / [晋江](references/platform-jjwxc.md) / [刺猬猫](references/platform-ciweimao.md)。按 Phase 1 的频道和「看什么」运行默认命令；需要 Chrome 的平台先 `/browser-cdp` 启动。
 3. 聚合：`node scripts/aggregate-rank.js {outdir} --out {outdir}/扫榜聚合.md`。**主会话先只读聚合**：题材分布、去重本数、热度与字数中位、标签、书名词、多榜重合和代表作。
 4. 看聚合的「采集情况」：标了问题（书名没解出来、没采到、只有书单、详情没取到）的榜单，按平台参考的「采不到时」排查后重采；重采不了，报告里说明结论不含它。
-5. 分析新人设、新切入设定、新桥段时按需抽样：`node scripts/aggregate-rank.js {outdir} --sample {题材/标签/书名词} --n 5`，一次一个方向。命中条数含多榜重复，样本本数按同平台书名+作者去重。
+5. 分析新人物设定、新切入设定和新桥段时按需抽样：`node scripts/aggregate-rank.js {outdir} --sample {题材/标签/书名词} --n 5`，一次一个方向。命中条数含多榜重复，样本本数按同平台书名+作者去重。
 
 #### 作者提供
 
-已有榜单文件就放进 `{outdir}` 聚合。给的是链接，请作者把页面内容复制过来或截图（番茄、起点有反爬，直接抓页面常拿不到）。粘贴或截图整理成：首行 `# {平台} · {榜单名}`，平台名只用 起点 / 番茄 / 晋江 / 七猫 / 刺猬猫，才能和脚本数据合并；每本一段 `### #{排名} {书名}`，下一行 `*作者 · 题材 · 连载中 · 120万字 · 3.5万收藏*`（热度写「数字+口径」，有标签再加 `**标签：** a、b`）。存进 `{outdir}` 后同样聚合。
+已有榜单文件就放进 `{outdir}` 聚合。作者给链接时，请他把页面内容复制过来或截图（番茄、起点有反爬，直接抓页面常拿不到）。把文字或截图整理成：首行 `# {平台} · {榜单名}`，平台名只用 起点 / 番茄 / 晋江 / 七猫 / 刺猬猫，才能和脚本数据合并；每本一段 `### #{排名} {书名}`，下一行 `*作者 · 题材 · 连载中 · 120万字 · 3.5万收藏*`（热度写「数字+口径」，有标签再加 `**标签：** a、b`）。存进 `{outdir}` 后同样聚合。
 
 #### 内置知识
 
@@ -86,7 +86,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 
 ### Phase 4：输出扫榜报告
 
-报告讲本次样本支持的结论和作者能写的方向；无可比上期时，趋势栏写「未比较」，不填涨跌。脚本名、命令和采集状态不进报告；缺榜时说「XX 榜这次没拿到（原因），结论不含它」。题材热度排行按热度中位从高到低排，没有热度数字的平台按本数排；和全平台比用白话，如「比全平台四分之三的书都热」，不写 P75。
+报告讲本次样本支持的结论和作者能写的方向；无可比上期时，趋势栏写「未比较」，不填涨跌。脚本名、命令和采集状态不进报告；缺榜时说「XX 榜这次没拿到（原因），结论不含它」。题材热度排行按热度中位从高到低排，没有热度数字的平台按本数排；与全平台比较用白话，如「比全平台四分之三的书都热」，不写 P75。
 
 报告展示给作者，同时写进 `{outdir}/选题决策.md`：文件不存在就先按 [references/topic-decision.md](references/topic-decision.md) 的模板写文件头，再把报告作为「扫榜结论」一节写入（已有同名一节就整节替换）。作者只扫榜不选题，结论也已落盘。
 

@@ -60,7 +60,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 
 ## Phase 2：部署基础设施
 
-Phase 2 幂等：复制、写入与各宿主合并重复执行结果一致。受管目录只覆盖 oh-story 自己的 13 个 skill、7 个助手、hook 与规则文件，同目录里作者自己的文件保留；书稿、设定、大纲、追踪和 `.active-book` 不覆盖。工具、权限或网络问题中断后，从头重跑即可，不另清理半成品；`create only if absent` 的用户状态文件（见清单 Owner class）不会被覆盖。
+Phase 2 幂等：复制、写入与各宿主合并重复执行结果一致。受管目录中只覆盖 oh-story 自己的 13 个 skill、7 个助手、hook 与规则文件，保留同目录里作者自己的文件；不覆盖书稿、设定、大纲、追踪和 `.active-book`。工具、权限或网络问题中断后，从头重跑即可，不另清理半成品；`create only if absent` 的用户状态文件（见清单 Owner class）不会被覆盖。
 
 **两列基准目录不同**：`Source path` 是包内来源，story-setup 内的路径以当前 `SKILL.md` 所在目录定位；`Target path` 相对用户项目根。执行每一行（以及各宿主部署算法里的每个递归复制步骤）之前，先把通配符具体化为单个源/目标，再用本 `SKILL.md` 同级的 `scripts/copy-path-safety.py` 检查。该脚本按 `Path.resolve` / `realpath` 语义跟随已有 symlink，并在两侧都存在时用 `samefile` 核对文件系统对象；**只转绝对路径或比较字符串不算检查完成**。读取其 JSON：`status: same` 时 no-op，禁止复制；仅 `copy_allowed: true` 时可以复制；`source_missing`、`unsafe_target_within_source` 或 `filesystem_identity_error` 必须停止该步骤并报告。无法运行脚本时只能用当前环境的文件系统 API 做完全相同的 canonical realpath、same-object 与 target-descendant 检查；无法确认就停止，不得尝试复制。OpenClaw / Reasonix / generic 的项目副本是整份 skill 拷贝，重跑时执行的就是项目里那份；Reasonix / Codex 还可能经 `.agents/skills → ../skills` symlink 加载，路径文本不同也可能指向同一目录，照字面复制会把目录嵌进自身并撑满磁盘。
 
@@ -127,10 +127,10 @@ Phase 2 幂等：复制、写入与各宿主合并重复执行结果一致。受
 规则（无法运行脚本时照此手工合并）：
 1. 文件不存在或为空 → 只写这一块。
 2. 已有本宿主的块 → 整块替换；块外文字和别的宿主的块一字不动。
-3. 没有本宿主的块、但块外有旧版「网文写作工具集」标题行（旧部署）→ 删掉本宿主的旧标题行与引言、和模板同名的节（含已退役的「协作规则」；「Skill 路由表」「文件结构」「写作约束」只在内容带 oh-story 痕迹时才删），在原位置写入这一块；作者自己的节保留在块外。已有别的宿主的块、块外没有旧标题行时，只删本宿主独有的节（如「Codex 项目约定」）。
+3. 没有本宿主的块、但块外有旧版「网文写作工具集」标题行（旧部署）→ 删掉本宿主的旧标题行、引言及与模板同名的节（含已退役的「协作规则」；「Skill 路由表」「文件结构」「写作约束」只在内容带 oh-story 痕迹时才删），在原位置写入这一块；作者自己的节保留在块外。已有别的宿主的块、块外没有旧标题行时，只删本宿主独有的节（如「Codex 项目约定」）。
 4. 以上都不是 → 把这一块追加到文件末尾。
 
-脚本输出删掉的旧节名，写进安装报告的「部署明细」。
+把脚本输出的旧节名写进安装报告的「部署明细」。
 
 ---
 
