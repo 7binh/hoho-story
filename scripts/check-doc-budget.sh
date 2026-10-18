@@ -10,7 +10,7 @@
 #
 # 路径（paths）按「一个角色的一次调用」登记，语义：
 #   files      无条件读取；写成 `文件#小节标题` 只计该小节（到下一个同级或更高级标题为止，代码围栏里的 # 不算）。
-#   generated  由脚本拼出的任务包：以 `--project <临时目录> <args>` 运行脚本，取它输出 JSON 的 chars。
+#   generated  由脚本拼出的任务包：以 `--project <临时目录> <args>` 运行脚本，读它输出 JSON 的 brief 文件，去掉其中的仓库根路径后计字（包里的绝对路径不随机器改变计量）。
 #   branches   条件读取，默认互斥：每条分支 = 基础 + 本分支文件，各自对照自己的 budget。
 #   stacking   会在同一次调用里叠加的分支：slots 里每个槽至多取一条分支，槽与槽可以同时发生；
 #              守卫枚举全部组合（同一文件只算一次，整份已读则其小节不重复计），取最坏的一组对照 stacking.budget。
@@ -120,10 +120,17 @@ const generatedWeight = (gen) => {
   else {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "doc-budget-"));
     const run = spawnSync(py[0], [...py[1], script, "--project", tmp, ...(gen.args || [])], { encoding: "utf8" });
-    fs.rmSync(tmp, { recursive: true, force: true });
     const last = (run.stdout || "").trim().split("\n").pop() || "";
     let chars = null;
-    try { chars = JSON.parse(last).chars; } catch (e) { chars = null; }
+    try {
+      const out = JSON.parse(last);
+      chars = out.chars;
+      // 包里写的是参考文件绝对路径，长度随机器上的仓库位置变；按去掉仓库根后的文本计量，各机器结果一致。
+      if (Number.isInteger(chars) && out.brief && fs.existsSync(out.brief)) {
+        chars = strip(fs.readFileSync(out.brief, "utf8").split(repoRoot + path.sep).join(""));
+      }
+    } catch (e) { chars = null; }
+    fs.rmSync(tmp, { recursive: true, force: true });
     value = run.status === 0 && Number.isInteger(chars) ? chars
       : { error: `拼包脚本 ${gen.script} ${(gen.args || []).join(" ")} 没给出 chars（退出码 ${run.status}）：${(run.stderr || last).trim().slice(0, 200)}` };
   }

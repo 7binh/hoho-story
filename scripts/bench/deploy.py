@@ -48,15 +48,37 @@ def render(tmpl, proj):
     return tmpl.read_text(encoding='utf-8').replace('{项目名}', proj.name)
 
 
+def instructions(pkg, host, tmpl, path, proj):
+    """项目指令文件：包里有管理块合并脚本就照 story-setup 合并（多端共用一份文件），旧包按原样渲染。"""
+    merger = pkg / 'skills/story-setup/scripts/merge-project-instructions.py'
+    if not merger.is_file():
+        path.write_text(render(tmpl, proj), encoding='utf-8')
+        return
+    subprocess.run([sys.executable, str(merger), '--host', host, '--template', str(tmpl),
+                    '--existing', str(path), '--output', str(path), '--project-name', proj.name],
+                   check=True, stdout=subprocess.DEVNULL)
+
+
 def sentinel(proj, contract, target, refs_dir):
+    """多端部署进同一项目时 target_cli 逗号合并，references_dir 保留先部署的那端。"""
+    path = proj / '.story-deployed'
+    old = {}
+    if path.is_file():
+        for line in path.read_text(encoding='utf-8').splitlines():
+            key, sep, value = line.partition(':')
+            if sep:
+                old[key.strip()] = value.strip()
+    targets = [t for t in old.get('target_cli', '').split(',') if t]
+    if target not in targets:
+        targets.append(target)
     stamp = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-    (proj / '.story-deployed').write_text(
+    path.write_text(
         f"deployed_at: {stamp}\n"
         f"agents_version: {contract['agents_version']}\n"
         f"setup_skill_version: {contract['setup_skill_version']}\n"
-        f"target_cli: {target}\n"
+        f"target_cli: {','.join(targets)}\n"
         "resolver_strategy: project-local-skill-reference\n"
-        f"references_dir: {refs_dir}\n", encoding='utf-8')
+        f"references_dir: {old.get('references_dir') or refs_dir}\n", encoding='utf-8')
 
 
 def deploy_claude(pkg, proj, contract):
@@ -66,7 +88,7 @@ def deploy_claude(pkg, proj, contract):
     claude.mkdir(parents=True, exist_ok=True)
     for skill in sorted(p for p in skills.iterdir() if (p / 'SKILL.md').is_file()):
         copytree(skill, claude / 'skills' / skill.name)
-    (proj / 'CLAUDE.md').write_text(render(tpl / 'CLAUDE.md.tmpl', proj), encoding='utf-8')
+    instructions(pkg, 'claude-code', tpl / 'CLAUDE.md.tmpl', proj / 'CLAUDE.md', proj)
     copytree(tpl / 'hooks', claude / 'hooks')
     for sh in (claude / 'hooks').glob('*.sh'):
         sh.chmod(0o755)
@@ -86,7 +108,7 @@ def deploy_codex(pkg, proj, contract):
     ref = setup / 'references/codex'
     for skill in sorted(p for p in skills.iterdir() if (p / 'SKILL.md').is_file()):
         copytree(skill, proj / '.agents/skills' / skill.name)
-    (proj / 'AGENTS.md').write_text(render(ref / 'AGENTS.md.tmpl', proj), encoding='utf-8')
+    instructions(pkg, 'codex', ref / 'AGENTS.md.tmpl', proj / 'AGENTS.md', proj)
     codex = proj / '.codex'
     (codex / 'agents').mkdir(parents=True, exist_ok=True)
     for f in (ref / 'agents').glob('*.toml'):

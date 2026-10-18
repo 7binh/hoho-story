@@ -37,6 +37,8 @@ jobs:
         run: bash scripts/check-current-skill-contracts.sh
       - name: Current-only skill contract regression
         run: python3 scripts/test-current-skill-contracts.py
+      - name: Analysis and scan handoff contracts
+        run: python3 scripts/test-handoff-contracts.py
       - name: Long-analysis runtime and compatibility regression
         run: python3 scripts/test-long-analyze-runtime.py
       - name: Inspiration index regression

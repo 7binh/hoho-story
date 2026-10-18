@@ -363,7 +363,7 @@ Since v0.7.7 long-form prose uses a single machine-counted length metric: every 
 
 ### I already have part of a novel written. Can I import it and continue?
 
-Yes. Run `/story-setup` in the project root, start or refresh a session, run `/story-import` to reverse-parse the existing novel into the standard project layout, review its inferences, then continue with `/story-long-write 日更` or `/story-long-write 写第N章`. The [import-and-continue guide](https://zenstory.ai/oh-story/import-and-continue) explains why manuscript evidence should take priority over model guesses.
+Yes. Run `/story-setup` in the project root, start or refresh a session, run `/story-import` to reverse-parse the existing novel into the standard project layout, review its inferences, then continue with `/story-long-write 写第N章`, where N is the first chapter after the imported ones (it drafts that chapter's outline first); for a short story, finish its planning (say 「补完构思」 to `/story-short-write`) before writing on. The [import-and-continue guide](https://zenstory.ai/oh-story/import-and-continue) explains why manuscript evidence should take priority over model guesses.
 
 ### How do I reduce forgotten clues or characters knowing answers too early in a long continuation?
 

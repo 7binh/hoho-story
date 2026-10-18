@@ -96,6 +96,13 @@
         "skills/story-short-write/scripts/style-whitelist.js",
         "skills/story-review/scripts/style-whitelist.js"
       ]
+    },
+    {
+      "name": "outline-volume-view",
+      "source": "skills/story-long-write/scripts/outline_view.py",
+      "targets": [
+        "skills/story-import/scripts/outline_view.py"
+      ]
     }
   ]
 }

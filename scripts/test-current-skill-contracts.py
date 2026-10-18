@@ -642,6 +642,12 @@ def test_author_note_preflight_keeps_engine_words_in_tech_note() -> None:
         not VALIDATOR.author_note_preflight_findings(routed, Path("routed-fixture.md")),
         "a Fallback routed into 技术备注 in the same sentence must pass",
     )
+    # 路由和导入也有版本与降级提示，名单漏掉它们时原文会被念给作者。
+    for entry in ("skills/story/SKILL.md", "skills/story-import/SKILL.md"):
+        require(
+            entry in VALIDATOR.AUTHOR_NOTE_PREFLIGHT_SKILLS,
+            "{} must stay in AUTHOR_NOTE_PREFLIGHT_SKILLS".format(entry),
+        )
     for relative in VALIDATOR.AUTHOR_NOTE_PREFLIGHT_SKILLS:
         path = REPO_ROOT / relative
         require(

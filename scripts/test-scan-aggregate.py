@@ -782,6 +782,133 @@ def test_library_metric_edges(tmp: Path) -> None:
     check(qm and not qm.get("metric"), f"先在书库出现的跨榜书也要算进门槛分母: {qm.get('metric')!r}")
 
 
+def test_manual_missing_author(tmp: Path) -> None:
+    """作者手动整理的盐言榜：元信息按位置认「作者 · 题材」，截图没作者时 manual-rank-input 要求写「佚名」占位。"""
+    case = tmp / "manual-missing-author"
+    case.mkdir()
+    (case / "知乎盐言热门榜_20261017.md").write_text("\n".join([
+        "# 知乎盐言 · 热门榜", "", "- 抓取时间：2026-10-17", "- 数据质量：作者提供", "",
+        "### #1 替嫁后我成了首辅夫人", "*佚名 · 古言 · 已完结 · 12000字 · 2.3万收藏*", "",
+        "### #2 我妈的第二个女儿", "*盐二 · 现实 · 已完结 · 9000字 · 8000收藏*", "",
+    ]), encoding="utf-8")
+    proc = run(SHORT, str(case), "--scale", "short", "--json")
+    check(proc.returncode == 0, f"manual aggregate failed: {proc.stderr}")
+    if proc.returncode != 0:
+        return
+    yy = platform(json.loads(proc.stdout), "知乎盐言")
+    check({g["name"] for g in yy["genres"]} == {"古言", "现实"}, f"「佚名」占位后题材不被当成作者: {yy['genres']}")
+    md = run(SHORT, str(case), "--scale", "short").stdout
+    check("- 知乎盐言 · 热门榜：2 条，2026-10-17，作者提供" in md, "manual header date and source show in 采集情况")
+
+
+def test_same_page_lists_count_once(tmp: Path) -> None:
+    """起点手机版的两个签约榜是同一页：条目逐条相同的两份榜只按一份计，多榜重合不虚高。"""
+    case = tmp / "same-page"
+    case.mkdir()
+    books = [("书甲", "作者甲", "玄幻·东方玄幻", "12.0万字", "3000", ""),
+             ("书乙", "作者乙", "都市·都市生活", "8.0万字", "2000", "")]
+    (case / "起点新人签约新书榜_20261017.md").write_text(qidian("新人签约新书榜", books), encoding="utf-8")
+    (case / "起点签约作者新书榜_20261017.md").write_text(qidian("签约作者新书榜", books), encoding="utf-8")
+    (case / "起点月票榜_20261017.md").write_text(qidian("月票榜", [
+        books[0], ("老书丁", "大神丁", "玄幻·东方玄幻", "320.0万字", "900000", ""),
+    ]), encoding="utf-8")
+    proc = run(LONG, str(case), "--json")
+    check(proc.returncode == 0, f"same-page aggregate failed: {proc.stderr}")
+    if proc.returncode != 0:
+        return
+    result = json.loads(proc.stdout)
+    qd = platform(result, "起点")
+    check(qd["bookCount"] == 3, f"same-page lists still dedupe books: {qd['bookCount']}")
+    check([(o["title"], len(o["lists"])) for o in qd["overlap"]] == [("书甲", 2)],
+          f"同一页的两个签约榜不能把每本书都算成多榜重合: {qd['overlap']}")
+    dup = {f["list"]: f.get("duplicateOf") for f in result["files"]}
+    check(dup.get("签约作者新书榜") == "新人签约新书榜" and not dup.get("新人签约新书榜"),
+          f"后读到的那份标成重复: {dup}")
+    md = run(LONG, str(case)).stdout
+    check("- 起点 · 签约作者新书榜：2 条，2026-09-25，质量未标；和「新人签约新书榜」条目完全相同，是同一份数据，只按一份计" in md,
+          "采集情况说明哪份按重复计")
+
+    # 书名都没解出来的两份榜不能因为都是「（标题待解析）· 未知」就被当成同一份。
+    blank = tmp / "same-page-unresolved"
+    blank.mkdir()
+    for name in ("男频阅读榜", "男频新书榜"):
+        (blank / f"番茄{name}_全题材_20261017.md").write_text(fanqie("男频", name[2:], {
+            "都市日常": [("（标题待解析）", "未知", "未知", "未知", "")] * 2,
+        }, quality="[标题解析异常]"), encoding="utf-8")
+    files = json.loads(run(LONG, str(blank), "--json").stdout)["files"]
+    check(not any(f.get("duplicateOf") for f in files), f"unresolved lists are never merged: {files}")
+
+    # 抽样也只按一份计：重复榜的条目不重复出现、不占 --n 名额。
+    sample = run(LONG, str(case), "--sample", "玄幻", "--n", "5").stdout
+    check(sample.startswith("# 抽样：玄幻（命中 3 条，显示 3 条）"), f"sample skips the duplicate list: {sample[:80]!r}")
+    check(sample.count("## #1 书甲") == 2 and "签约作者新书榜" not in sample,
+          "书甲 appears once per distinct list (新人签约 + 月票), never from the duplicate list")
+
+
+def test_per_genre_cap_noted(tmp: Path) -> None:
+    """番茄逐题材取前 N 本：聚合要注明本数是采样上限，主会话才不会把本数读成题材大小。"""
+    case = tmp / "per-genre-cap"
+    case.mkdir()
+    (case / "番茄男频阅读榜_全题材_20261017.md").write_text(big_fanqie(genre_count=3, per_genre=20), encoding="utf-8")
+    result = json.loads(run(LONG, str(case), "--json").stdout)
+    fq = platform(result, "番茄")
+    check(fq.get("perGenreCap") and fq["perGenreCap"]["top"] == 20, f"cap read from header: {fq.get('perGenreCap')}")
+    md = run(LONG, str(case)).stdout
+    check("- 每题材按上限取前 20 本（男频阅读榜 · 全 3 题材）：本数和占比是采样结果，不代表题材大小" in md,
+          "aggregate notes the per-genre cap")
+    rows = [line for line in md.splitlines() if line.startswith("| 题材0")]
+    check(len(rows) == 3 and all(r.endswith("| 采样 |") for r in rows),
+          f"本数正好等于上限的题材样本列标「采样」，不标「够」: {rows}")
+    few = tmp / "per-genre-cap-few"
+    few.mkdir()
+    (few / "番茄男频阅读榜_全题材_20261017.md").write_text(big_fanqie(genre_count=1, per_genre=5), encoding="utf-8")
+    check("| 题材00 | 5 |" in run(LONG, str(few)).stdout and run(LONG, str(few)).stdout.count("| 少 |") == 1,
+          "capped genre under the threshold is still 「少」")
+    plain = tmp / "no-cap"
+    plain.mkdir()
+    (plain / "起点月票榜_20261017.md").write_text(qidian("月票榜", [("书甲", "作者甲", "玄幻·东方玄幻", "12.0万字", "3000", "")]),
+                                              encoding="utf-8")
+    check(platform(json.loads(run(LONG, str(plain), "--json").stdout), "起点").get("perGenreCap") is None,
+          "lists without a cap header get no cap note")
+
+
+def test_new_list_names(tmp: Path) -> None:
+    """晋江新手金榜是新书榜：和收入金榜一起采时聚合显示「新书榜」列。"""
+    case = tmp / "jj-new"
+    case.mkdir()
+    (case / "晋江收入金榜_全站_20261017.md").write_text(jjwxc(), encoding="utf-8")
+    (case / "晋江新手金榜_全站_20261017.md").write_text(
+        jjwxc().replace("收入金榜", "新手金榜").replace("春日宴", "新芽").replace("月下归", "初雪"), encoding="utf-8")
+    md = run(LONG, str(case)).stdout
+    check("| 题材 | 本数 | 占比 | 新书榜 | 热度中位 |" in md, "晋江新手金榜 counts as a new-book list")
+    jj = platform(json.loads(run(LONG, str(case), "--json").stdout), "晋江")
+    check(jj["compareNew"] and genre(jj, "言情")["newCount"] == 2, f"new-book count per genre: {jj['genres']}")
+
+
+def test_ciweimao_manual_and_sparse(tmp: Path) -> None:
+    """刺猬猫：作者手动整理的「作者 · 题材」按通用位置读；样本门槛默认 10 本，给了 --sparse 就统一用它。"""
+    case = tmp / "cwm-manual"
+    case.mkdir()
+    rows = ["# 刺猬猫 · 月票榜", "", "- 数据质量：作者提供", ""]
+    for i in range(1, 11):
+        rows += [f"### #{i} 书{i}", f"*作者{i} · 同人 · 连载中 · 120万字 · 3.5万收藏*", ""]
+    (case / "刺猬猫月票榜_20261017.md").write_text("\n".join(rows), encoding="utf-8")
+    cw = platform(json.loads(run(LONG, str(case), "--json").stdout), "刺猬猫")
+    check([g["name"] for g in cw["genres"]] == ["同人"], f"hand-made 刺猬猫 rows keep author out of genre: {cw['genres']}")
+    check(cw.get("sparse") == 10 and genre(cw, "同人")["sparse"] is False, f"刺猬猫 defaults to a 10-book threshold: {cw.get('sparse')}")
+    (case / "起点月票榜_20261017.md").write_text(qidian("月票榜", [
+        (f"起点书{i}", f"起作者{i}", "玄幻·东方玄幻", "12.0万字", str(3000 - i), "") for i in range(12)
+    ]), encoding="utf-8")
+    result = json.loads(run(LONG, str(case), "--json").stdout)
+    check(genre(platform(result, "起点"), "玄幻")["sparse"] is True and genre(platform(result, "刺猬猫"), "同人")["sparse"] is False,
+          "multi-platform run: 起点 keeps 15 while 刺猬猫 uses 10")
+    md = run(LONG, str(case)).stdout
+    check("- 样本门槛：同题材少于 15 本（刺猬猫 10 本）标「少」" in md, "header names the 刺猬猫 threshold")
+    forced = json.loads(run(LONG, str(case), "--json", "--sparse", "12").stdout)
+    check(genre(platform(forced, "刺猬猫"), "同人")["sparse"] is True and genre(platform(forced, "起点"), "玄幻")["sparse"] is False,
+          "explicit --sparse applies to every platform")
+
+
 def test_short_copy_identical() -> None:
     check(SHORT.read_bytes() == LONG.read_bytes(), "short-scan copy must stay byte-identical (shared-assets)")
 
@@ -808,6 +935,11 @@ def main() -> int:
         test_library_markdown_words(lib)
         test_library_metric_edges(tmp)
         test_short_scale_unchanged(scan, tmp)
+        test_manual_missing_author(tmp)
+        test_same_page_lists_count_once(tmp)
+        test_per_genre_cap_noted(tmp)
+        test_new_list_names(tmp)
+        test_ciweimao_manual_and_sparse(tmp)
         test_short_copy_identical()
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

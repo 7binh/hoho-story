@@ -44,7 +44,7 @@ function outlineRow(stage, index, hook, { legacy = false, progression = threeUni
 
 function validSettings(overrides = {}) {
   const values = {
-    platform: '知乎盐选',
+    platform: '知乎盐言',
     genre: 'references/genre-styles/悬疑.md',
     moves: '日常违和切入；延迟剥洋葱；证物翻转',
     villain: '反派设计：不适用（冲突来自主角对自我记忆的误判）',
@@ -118,6 +118,19 @@ try {
   assert.strictEqual(good.report.ok, true)
   assert.deepStrictEqual(good.report.failures, [])
 
+  // 平台表六个平台都要识别；旧项目写的「知乎盐选」「盐选」「番茄短篇」继续通过；作者没定平台写「未定」。
+  for (const platform of ['番茄', '七猫', '黑岩', '红果', '小程序', '点众', '盐言', '知乎盐选', '盐选', '番茄短篇', '未定']) {
+    const named = run(writeCase(`platform-${platform}`, validSettings({ platform }), validOutline()))
+    assert.strictEqual(named.status, 0, named.stdout + named.stderr)
+    assert.strictEqual(
+      named.report.checks.find((check) => check.id === 'phase2.platform-declared').evidence,
+      `目标平台：${platform}`
+    )
+  }
+  const unknownPlatform = run(writeCase('platform-unknown', validSettings({ platform: '起点' }), validOutline()))
+  assert.strictEqual(unknownPlatform.status, 1)
+  assert.deepStrictEqual(failureIds(unknownPlatform), ['phase2.platform-declared'])
+
   // 旧项目落盘的三个旧列名必须继续通过（legacyHeader 兼容分支）。
   const legacyHeaderOutline = run(writeCase(
     'legacy-headers',
@@ -190,6 +203,12 @@ try {
   assert.strictEqual(rangeTargetOutside.status, 1)
   assert.deepStrictEqual(failureIds(rangeTargetOutside), ['phase2.target-word-sum'])
   assert.match(rangeTargetOutside.report.failures[0].evidence, /6000-8000/)
+
+  // 按「万」写的目标字数换算成整数再比对。
+  for (const [name, target] of [['wan-range', '约 0.75-0.9 万'], ['wan-single', '0.8万']]) {
+    const wan = run(writeCase(name, validSettings({ target }), validOutline()))
+    assert.strictEqual(wan.status, 0, wan.stdout + wan.stderr)
+  }
 
   // 未填写的模板占位符不算完成设计。
   const placeholders = run(writeCase(

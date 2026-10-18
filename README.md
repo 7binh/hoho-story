@@ -356,7 +356,7 @@ oh-story-claudecode 内置适配 Claude Code、Google Antigravity、OpenCode、Z
 
 ### 已经写了一部分的小说，能导入后继续写吗？
 
-可以。先在写作项目根运行 `/story-setup`，新开或刷新会话后运行 `/story-import`（`/导入小说`）把已有小说反向解析成标准项目结构，审阅反推结果，再用 `/story-long-write 日更` 或 `/story-long-write 写第N章` 续写。[导入与续写指南](https://zenstory.ai/zh/oh-story/import-and-continue)说明了为什么书稿证据应优先于模型猜测。
+可以。先在写作项目根运行 `/story-setup`，新开或刷新会话后运行 `/story-import`（`/导入小说`）把已有小说反向解析成标准项目结构，审阅反推结果，再用 `/story-long-write 写第N章` 续写（N 是导入后的下一章，会先补这一章的细纲）；短篇导入后先补完构思再接着写。[导入与续写指南](https://zenstory.ai/zh/oh-story/import-and-continue)说明了为什么书稿证据应优先于模型猜测。
 
 ### 长篇续写怎样减少忘伏笔或角色提前知道答案？
 

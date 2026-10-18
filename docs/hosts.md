@@ -60,7 +60,7 @@ repo 内直接使用：Codex 会扫描 `$REPO_ROOT/.agents/skills`（指向 `ski
 
 **多 agent 协作要先部署再新开会话：** 7 个专业 agent（story-architect、narrative-writer、consistency-checker 等）由 `/story-setup` 写入项目 `.claude/agents/`，由 `$story-setup` 写入 `.codex/agents/*.toml`，或由 Antigravity `story-setup` 生成 `.agents/agents/agent-name/agent.md`（`agent-name` 替换为实际名称）。Antigravity 使用 `invoke_subagent` + 同名 `TypeName`；运行时未暴露 custom subagent 时按 skill 明确降级 solo/direct。判断是否生效：新会话里跑 `/story-review`，报告开头「这次怎么审的」写着几个视角（完整审或精简审）即注册成功；写着「我一个人审」说明还在旧会话，或当前运行时未暴露该 agent。
 
-**导入续写顺序：** 推荐先在写作项目根运行 `/story-setup`（部署 hooks/agents/AGENTS），新开/刷新会话后运行 `/story-import` 导入已有小说，再用 `/story-long-write 日更` 或 `/story-long-write 写第N章` 续写。也可以直接运行 `/story-import`；它会先检测是否已 setup，未部署时让你选择先去 setup 或继续串行导入。
+**导入续写顺序：** 推荐先在写作项目根运行 `/story-setup`（部署 hooks/agents/AGENTS），新开/刷新会话后运行 `/story-import` 导入已有小说，再用 `/story-long-write 写第N章` 续写（N 是导入后的下一章，会先补这一章的细纲）。也可以直接运行 `/story-import`；它会先检测是否已 setup，未部署时让你选择先去 setup 或继续串行导入。
 
 **作者习惯由写作流程管理：** `story-long-write` 与 `story-short-write` 负责记录、确认、整理和按需查询作者记忆。可以直接向写作 skill 提要求，也可以对 `/story` 说“记住我的写作习惯”，由它路由到对应写作 skill；部署后的项目里直接说「记住：……」同样走写作流程，不进编程工具自带的记忆。去 AI 味与审查沿用写作流程传入的文风要求。
 

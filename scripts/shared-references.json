@@ -5,7 +5,6 @@
       "name": "deslop-expression",
       "source": "skills/story-deslop/references/expression.md",
       "targets": [
-        "skills/story-long-write/references/expression.md",
         "skills/story-short-write/references/expression.md",
         "skills/story-review/references/expression.md",
         "skills/story-setup/references/agent-references/expression.md"
@@ -15,7 +14,6 @@
       "name": "deslop-narrative-focus",
       "source": "skills/story-deslop/references/narrative-focus.md",
       "targets": [
-        "skills/story-long-write/references/narrative-focus.md",
         "skills/story-short-write/references/narrative-focus.md",
         "skills/story-review/references/narrative-focus.md",
         "skills/story-setup/references/agent-references/narrative-focus.md"
@@ -25,7 +23,6 @@
       "name": "deslop-story-logic",
       "source": "skills/story-deslop/references/story-logic.md",
       "targets": [
-        "skills/story-long-write/references/story-logic.md",
         "skills/story-short-write/references/story-logic.md",
         "skills/story-review/references/story-logic.md",
         "skills/story-setup/references/agent-references/story-logic.md"
@@ -61,15 +58,9 @@
       "targets": ["skills/story-setup/references/agent-references/character-basics.md"]
     },
     {
-      "name": "character-design-methods",
-      "source": "skills/story-long-write/references/character-design-methods.md",
-      "targets": ["skills/story-setup/references/agent-references/character-design-methods.md"]
-    },
-    {
       "name": "character-relations",
       "source": "skills/story-long-write/references/character-relations.md",
       "targets": [
-        "skills/story-review/references/character-relations.md",
         "skills/story-setup/references/agent-references/character-relations.md"
       ]
     },
@@ -78,7 +69,6 @@
       "source": "skills/story-long-write/references/dialogue-mastery.md",
       "targets": [
         "skills/story-short-write/references/dialogue-mastery.md",
-        "skills/story-review/references/dialogue-mastery.md",
         "skills/story-setup/references/agent-references/dialogue-mastery.md"
       ]
     },
@@ -96,11 +86,6 @@
       "name": "short-emotional-methods",
       "source": "skills/story-short-write/references/emotional-methods.md",
       "targets": ["skills/story-setup/references/agent-references/short-emotional-methods.md"]
-    },
-    {
-      "name": "format-and-structure",
-      "source": "skills/story-import/references/format-and-structure.md",
-      "targets": ["skills/story-setup/references/agent-references/format-and-structure.md"]
     },
     {
       "name": "genre-prose-card-index",
@@ -123,11 +108,6 @@
       "targets": ["skills/story-setup/references/agent-references/short-chapter-hooks.md"]
     },
     {
-      "name": "short-paragraph-hooks",
-      "source": "skills/story-short-write/references/hooks-paragraph.md",
-      "targets": ["skills/story-setup/references/agent-references/short-paragraph-hooks.md"]
-    },
-    {
       "name": "long-suspense",
       "source": "skills/story-long-write/references/long-suspense.md",
       "targets": ["skills/story-setup/references/agent-references/long-suspense.md"]
@@ -138,37 +118,16 @@
       "targets": ["skills/story-setup/references/agent-references/opening-design.md"]
     },
     {
-      "name": "outline-conflict",
-      "source": "skills/story-long-write/references/outline-conflict.md",
-      "targets": ["skills/story-setup/references/agent-references/outline-conflict.md"]
-    },
-    {
       "name": "outline-methods",
       "source": "skills/story-long-write/references/outline-methods.md",
       "targets": ["skills/story-setup/references/agent-references/outline-methods.md"]
     },
     {
-      "name": "outline-rhythm",
-      "source": "skills/story-long-write/references/outline-rhythm.md",
-      "targets": ["skills/story-setup/references/agent-references/outline-rhythm.md"]
-    },
-    {
-      "name": "short-output-contract",
-      "source": "skills/story-short-write/references/output-contract.md",
-      "targets": ["skills/story-short-analyze/references/output-contract.md"]
-    },
-    {
       "name": "plot-core-methods",
       "source": "skills/story-long-write/references/plot-core-methods.md",
       "targets": [
-        "skills/story-review/references/plot-core-methods.md",
         "skills/story-setup/references/agent-references/plot-core-methods.md"
       ]
-    },
-    {
-      "name": "short-market-data",
-      "source": "skills/story-short-analyze/references/real-market-data.md",
-      "targets": ["skills/story-short-scan/references/real-market-data.md"]
     },
     {
       "name": "long-reversal",
@@ -184,6 +143,11 @@
       "name": "long-genre-catalog",
       "source": "skills/story-long-write/references/long-genre-catalog.md",
       "targets": ["skills/story-setup/references/agent-references/long-genre-catalog.md"]
+    },
+    {
+      "name": "female-audience-writing",
+      "source": "skills/story-long-write/references/female-audience-writing.md",
+      "targets": ["skills/story-setup/references/agent-references/female-audience-writing.md"]
     },
     {
       "name": "writing-craft",
@@ -209,7 +173,6 @@
       "name": "tracking-transaction-reference",
       "source": "skills/story-long-write/references/tracking-transaction.md",
       "targets": [
-        "skills/story-import/references/tracking-transaction.md",
         "skills/story-review/references/tracking-transaction.md"
       ]
     },
@@ -228,7 +191,6 @@
       "source": "skills/story-deslop/references/deslop-gates.md",
       "targets": [
         "skills/story-setup/references/agent-references/deslop-gates.md",
-        "skills/story-long-write/references/deslop-gates.md",
         "skills/story-short-write/references/deslop-gates.md"
       ]
     },
@@ -243,75 +205,27 @@
   ],
   "derived_groups": [
     {
-      "name": "analysis-paragraph-hooks",
-      "reason": "Analysis rubric is being rewritten from the short-writing hook playbook; setup keeps the installable writer copy.",
+      "name": "character-basics-deployment",
+      "reason": "Setup deploys the writing character taxonomy as an agent reference with consumer-specific edits.",
       "members": [
-        "skills/story-short-analyze/references/analysis-paragraph-hooks.md",
-        "skills/story-short-write/references/hooks-paragraph.md",
-        "skills/story-setup/references/agent-references/short-paragraph-hooks.md"
-      ]
-    },
-    {
-      "name": "analysis-character-design",
-      "reason": "Analysis rubric retains the writer method taxonomy while its instructions migrate to evidence language.",
-      "members": [
-        "skills/story-short-analyze/references/analysis-character-design.md",
-        "skills/story-long-write/references/character-design-methods.md",
-        "skills/story-setup/references/agent-references/character-design-methods.md"
-      ]
-    },
-    {
-      "name": "analysis-character-relations",
-      "reason": "Shared relationship taxonomy has distinct analysis, review and writing consumers.",
-      "members": [
-        "skills/story-short-analyze/references/analysis-character-relations.md",
-        "skills/story-long-write/references/character-relations.md",
-        "skills/story-review/references/character-relations.md",
-        "skills/story-setup/references/agent-references/character-relations.md"
-      ]
-    },
-    {
-      "name": "analysis-character-basics",
-      "reason": "Analysis rubric retains the character taxonomy while its consumer contract diverges from writing.",
-      "members": [
-        "skills/story-short-analyze/references/analysis-character-basics.md",
         "skills/story-long-write/references/character-basics.md",
         "skills/story-setup/references/agent-references/character-basics.md"
       ]
     },
     {
-      "name": "analysis-reader-profile",
-      "reason": "Reader taxonomy is reused but analysis requires evidence and uncertainty reporting.",
+      "name": "genre-readers-deployment",
+      "reason": "Setup deploys the writing reader taxonomy as an agent reference with consumer-specific edits.",
       "members": [
-        "skills/story-short-analyze/references/analysis-reader-profile.md",
         "skills/story-long-write/references/genre-readers.md",
         "skills/story-setup/references/agent-references/genre-readers.md"
       ]
     },
     {
-      "name": "chapter-hook-family",
-      "reason": "Long and short writing hooks share a historical taxonomy but now carry different density contracts.",
-      "members": [
-        "skills/story-short-write/references/hooks-chapter.md",
-        "skills/story-long-write/references/long-chapter-hooks.md",
-        "skills/story-setup/references/agent-references/short-chapter-hooks.md",
-        "skills/story-setup/references/agent-references/long-chapter-hooks.md"
-      ]
-    },
-    {
       "name": "long-emotional-methods-deployment",
-      "reason": "Setup adjusts the title and project-local reader-contract link while deploying the long method.",
+      "reason": "Setup adjusts the title while deploying the long method.",
       "members": [
         "skills/story-long-write/references/emotional-methods.md",
         "skills/story-setup/references/agent-references/long-emotional-methods.md"
-      ]
-    },
-    {
-      "name": "cross-book-recall-profile",
-      "reason": "Long and short recall tables route to their own skill's structure, hook and reversal references; only the routing rows differ.",
-      "members": [
-        "skills/story-long-write/references/cross-book-recall.md",
-        "skills/story-short-write/references/cross-book-recall.md"
       ]
     }
   ],

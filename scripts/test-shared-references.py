@@ -656,6 +656,8 @@ def test_short_analysis_scope() -> None:
                 "analysis-short-mechanics.md",
                 "analysis-short-suspense.md",
                 "analysis-short-hooks.md",
+                "analysis-characters.md",
+                "analysis-submission.md",
             )),
         )
         for name in (
@@ -664,6 +666,8 @@ def test_short_analysis_scope() -> None:
             "analysis-short-mechanics.md",
             "analysis-short-suspense.md",
             "analysis-short-hooks.md",
+            "analysis-characters.md",
+            "analysis-submission.md",
         ):
             write(skill / "references" / name, "# 源文观察\n\n按位置报告证据与作用。\n")
 

@@ -50,7 +50,7 @@ English version: [Keep an AI-written novel consistent over 100+ chapters](keep-a
 
 ## 已经写了几十章、没有追踪文件，怎么办
 
-先 `/story-setup` 部署，再 `/story-import`（`/导入小说`）把已有正文反向解析成上面的目录结构，生成设定、角色状态和伏笔的初版。反推结果需要作者审阅：模型从片段猜出来的设定会单列为"待确认"，不会直接写成事实。之后用 `/story-long-write 日更` 续写。
+先 `/story-setup` 部署，再 `/story-import`（`/导入小说`）把已有正文反向解析成上面的目录结构，生成设定、角色状态和伏笔的初版。反推结果需要作者审阅：模型从片段猜出来的设定会单列为"待确认"，不会直接写成事实。之后用 `/story-long-write 写第N章` 续写，N 是导入后的下一章，会先补这一章的细纲。
 
 ## 边界
 

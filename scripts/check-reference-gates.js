@@ -80,10 +80,18 @@ assert(finalCheck && !finalCheck[1].includes('--check-contract'), 'workflow-revi
 // （以前写正文要回查反派/钩子/公式/导语/对标召回，换了对话就得整份重读）。
 assert.match(short, /\*\*交接只靠落盘\*\*/, 'short SKILL.md must state the design-to-draft handoff')
 for (const reference of [
-  'workflow-design.md', 'writing-workflow.md', 'short-reversal.md', 'submission-craft.md', 'villain-and-reveal.md',
-  'genre-writing-formulas.md', 'hooks-chapter.md', 'hooks-paragraph.md', 'benchmark-recall.md', 'cross-book-recall.md',
+  'workflow-design.md', 'short-reversal.md', 'submission-craft.md', 'villain-and-reveal.md',
+  'genre-writing-formulas.md', 'hooks-chapter.md', 'benchmark-recall.md', 'cross-book-recall.md',
 ]) {
   assert(!shortDraft.includes(reference), `workflow-draft must take ${reference} decisions from 设定.md, not re-read it`)
+}
+// 写正文时刻还会加载格式协议和题材包；它们也不能把写手指回构思时刻的平台、设计与揭露资料。
+const shortRefs = path.join(repoRoot, 'skills/story-short-write/references')
+for (const file of ['short-format.md', ...fs.readdirSync(path.join(shortRefs, 'genre-styles')).map((name) => `genre-styles/${name}`)]) {
+  const text = fs.readFileSync(path.join(shortRefs, file), 'utf8')
+  for (const reference of ['submission-craft.md', 'workflow-design.md', 'villain-and-reveal.md']) {
+    assert(!text.includes(reference), `${file} is loaded while drafting and must not point to ${reference}; use 设定.md instead`)
+  }
 }
 for (const field of ['平台基调', '作者已定']) {
   assert(shortDesign.includes(field), `workflow-design must land ${field} in 设定.md for the draft moment`)

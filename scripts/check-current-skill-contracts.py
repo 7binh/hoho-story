@@ -849,6 +849,8 @@ AUTHOR_NOTE_PREFLIGHT_SKILLS = (
     "skills/story-short-write/SKILL.md",
     "skills/story-deslop/SKILL.md",
     "skills/story-review/SKILL.md",
+    "skills/story-import/SKILL.md",
+    "skills/story/SKILL.md",
 )
 BARE_ENGINE_REPORT_RE = re.compile(r"报告\s*`(?:Fallback|Notice):")
 ENGINE_LINE_RE = re.compile(r"(?:Fallback|Notice):")

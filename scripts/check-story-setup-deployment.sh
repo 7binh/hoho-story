@@ -481,6 +481,90 @@ python3 "$CLAUDE_MERGE" --existing "$TMP_DIR/claude-v25.json" --template "$SETTI
 cmp -s "$TMP_DIR/claude-v25.json" "$TMP_DIR/claude-v25-again.json" \
   || fail "Claude settings merge is not idempotent"
 
+# 项目指令合并：每个宿主一个管理块。旧版无标记文件迁移一次，作者自己的节留在块外；
+# 重跑整块替换、字节幂等；名字常见但不带 oh-story 痕迹的作者节不能被当成旧部署删掉。
+INSTR_MERGE="$SKILL_DIR/scripts/merge-project-instructions.py"
+assert_file "$INSTR_MERGE"
+python3 - "$INSTR_MERGE" "$SKILL_DIR/references" "$TMP_DIR/instr-merge" <<'PY' || fail "project instruction managed-block merge regressed"
+import json, subprocess, sys
+from pathlib import Path
+helper, refs, root = sys.argv[1], Path(sys.argv[2]), Path(sys.argv[3])
+root.mkdir(parents=True)
+templates = {
+    "claude-code": refs / "templates/CLAUDE.md.tmpl",
+    "opencode": refs / "opencode/AGENTS.md.tmpl",
+    **{h: refs / h / "AGENTS.md.tmpl" for h in ("codex", "zcode", "openclaw", "reasonix", "generic")},
+}
+def run(host, path, name="我的书"):
+    proc = subprocess.run([sys.executable, helper, "--host", host, "--template", str(templates[host]),
+                           "--existing", str(path), "--output", str(path), "--project-name", name],
+                          capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    return json.loads(proc.stdout)
+# 全新文件：每个宿主都能渲染出闭合的块，只替换 {项目名}，{书名} 通配原样保留。
+for host in templates:
+    target = root / f"new-{host}.md"
+    assert run(host, target)["status"] == "created"
+    text = target.read_text(encoding="utf-8")
+    assert text.startswith(f"<!-- oh-story:{host} 开始") and f"<!-- oh-story:{host} 结束 -->" in text, host
+    assert "{项目名}" not in text and "我的书" in text and "{书名}" in text, host
+# 旧版无标记的多端文件：Codex + ZCode 各迁移一次，作者节保留，退役的「协作规则」清掉。
+legacy = root / "AGENTS.md"
+legacy.write_text("""# 我的书 — 网文写作工具集（Codex）
+
+## Skill 路由表
+
+| `$story-long-write` | story-long-write |
+
+## Codex 项目约定
+
+- Codex custom agents 在 `.codex/agents/*.toml`
+
+## 我的约定
+
+- 每天写两章。
+
+## ZCode 项目约定
+
+- 写正文前必须先有对应大纲
+
+## 协作规则
+
+Agent 分工与升级路径见 `.codex/agents/*.toml` 的职责边界。
+""", encoding="utf-8")
+assert run("codex", legacy)["status"] == "migrated"
+assert run("zcode", legacy)["status"] == "migrated"
+first = legacy.read_bytes()
+text = first.decode("utf-8")
+assert text.count("## 我的约定") == 1 and "每天写两章" in text
+assert "## 协作规则" not in text
+assert text.count("<!-- oh-story:codex 开始") == 1 and text.count("<!-- oh-story:zcode 开始") == 1
+for host in ("zcode", "codex", "zcode"):
+    assert run(host, legacy)["status"] == "replaced"
+assert legacy.read_bytes() == first, "redeploy must be byte-idempotent"
+# 作者自己的同名常见节（无 oh-story 痕迹）不是旧部署：只追加块，原文一字不动。
+user = root / "user-AGENTS.md"
+original = "# 我的项目\n\n## 文件结构\n\n- docs/ 放说明\n"
+user.write_text(original, encoding="utf-8")
+assert run("generic", user)["status"] == "appended"
+merged = user.read_text(encoding="utf-8")
+assert merged.startswith(original.rstrip("\n")) and "网文写作工具集（通用 Agent / Web AI）" in merged
+# 没有 oh-story 标题行的作者文件，节名和模板相同、正文带「拆文库」「细纲」也不是旧部署。
+own = root / "own-CLAUDE.md"
+original = "# 我的小说项目\n\n## 文件结构\n\n- 拆文库/ 放我自己的拆书笔记\n- 细纲写在 notes/\n\n## 与作者协作\n\n- 先讨论再动笔\n"
+own.write_text(original, encoding="utf-8")
+report = run("claude-code", own)
+assert report["status"] == "appended" and report["removed_legacy_sections"] == [], report
+assert own.read_text(encoding="utf-8").startswith(original.rstrip("\n"))
+# 已有别的宿主的块时，块外作者写的共有节名（如「与作者协作」）不算本宿主的旧部署。
+shared = root / "shared-AGENTS.md"
+assert run("codex", shared)["status"] == "created"
+shared.write_text(shared.read_text(encoding="utf-8") + "\n## 与作者协作\n\n- 先讨论再动笔\n", encoding="utf-8")
+report = run("zcode", shared)
+assert report["status"] == "appended" and report["removed_legacy_sections"] == [], report
+assert "先讨论再动笔" in shared.read_text(encoding="utf-8")
+PY
+
 # 重部署时 sentinel 的 target_cli 是权威：不认它就会每次重问，且 skills-only 三端根本无从探测。
 assert_grep '已部署项目以 sentinel 里的值为准' "$SKILL_FILE" "story-setup must reuse the deployed target_cli on redeploy"
 # 但沿用 sentinel 不能跳过当前宿主判断：作者换了软件再跑部署，新宿主必须有机会装上。

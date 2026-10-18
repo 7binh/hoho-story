@@ -1650,6 +1650,51 @@ function testHeiyanFieldDriftAndWordFormat() {
     assert(fs.existsSync(femalePath), "女频报告必须独立落盘");
     assert(fs.readFileSync(malePath, "utf8").includes("甲书"));
     assert(fs.readFileSync(femalePath, "utf8").includes("乙书"));
+
+    // 缺作者：聚合按位置认「作者 · 题材」，不占位题材会被当成作者、书掉进分组名
+    const noAuthorDir = path.join(tmpDir, "no-author");
+    const noAuthorPath = path.join(noAuthorDir, heiyan.outputFilename("female", date));
+    fs.mkdirSync(noAuthorDir);
+    const noAuthor = [
+      { name: "丙书", userName: "作者丙", classifyStr: "女频", typeDesc: "虐恋", words: 32000 },
+      { name: "丁书", userName: "", classifyStr: "女频", typeDesc: "复仇", words: 28000 },
+      { name: "戊书", classifyStr: "女频", typeDesc: "虐恋", words: 30000 },
+    ];
+    console.log = () => {};
+    try {
+      heiyan.buildAndSave(noAuthor, 3, noAuthor, noAuthorPath, false);
+    } finally {
+      console.log = origLog;
+    }
+    const noAuthorText = fs.readFileSync(noAuthorPath, "utf8");
+    assert(noAuthorText.includes("*佚名 · 女频/复仇 · 28,000字 · 未公开*"), noAuthorText);
+    assert(noAuthorText.includes("- 已采集：3 条（1 页）"), `页数按实际取到的条数算: ${noAuthorText}`);
+    assert(noAuthorText.includes("- 数据质量：[仅列表-无核心指标]"), noAuthorText);
+    const agg = spawnSync(
+      process.execPath,
+      [path.join(repoRoot, "skills/story-short-scan/scripts/aggregate-rank.js"), noAuthorDir, "--scale", "short", "--json"],
+      { cwd: repoRoot, encoding: "utf8", timeout: 10000 }
+    );
+    assert.strictEqual(agg.status, 0, agg.stderr);
+    const hy = JSON.parse(agg.stdout).platforms.find((p) => p.platform === "黑岩");
+    assert.deepStrictEqual(
+      hy.genres.map((g) => g.name).sort(),
+      ["复仇", "虐恋"],
+      `缺作者的书题材不能丢: ${JSON.stringify(hy.genres)}`
+    );
+    const aggMd = spawnSync(
+      process.execPath,
+      [path.join(repoRoot, "skills/story-short-scan/scripts/aggregate-rank.js"), noAuthorDir, "--scale", "short"],
+      { cwd: repoRoot, encoding: "utf8", timeout: 10000 }
+    );
+    assert.match(aggMd.stdout, /黑岩 · 书库列表：3 条，\d{4}-\d{2}-\d{2}，只有书单，缺热度等关键数字/);
+
+    // 数据质量：列表模式只有书单；--detail 按详情取到几成定级，取值都在聚合的白话表里
+    const withDetail = (n, ok) => Array.from({ length: n }, (_, i) => ({ detailOk: i < ok }));
+    assert.strictEqual(heiyan.dataQuality(withDetail(4, 4), false), "[仅列表-无核心指标]");
+    assert.strictEqual(heiyan.dataQuality(withDetail(4, 4), true), "[OK]");
+    assert.strictEqual(heiyan.dataQuality(withDetail(4, 3), true), "[部分详情缺失]");
+    assert.strictEqual(heiyan.dataQuality(withDetail(4, 1), true), "[详情解析异常/登录态缺失]");
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
@@ -2245,6 +2290,54 @@ function testCdpRejectsUnverifiableIdentity() {
   );
 }
 
+// 起点排行榜、刺猬猫：文件头要有「数据质量」，聚合的「采集情况」才不会显示「质量未标」
+function testRankQualityHeaders() {
+  const qidian = loadFresh(QD_SCRAPER);
+  const ok = qidian.renderMarkdown(
+    { label: "月票榜" },
+    [
+      { rank: 1, title: "甲", author: "a", genre: "玄幻·东方玄幻", words: "12万字" },
+      { rank: 2, title: "乙", author: "b", genre: "都市·都市生活", words: "" },
+    ],
+    "https://m.qidian.com/rank/yuepiao/",
+    "mobile-ssr"
+  );
+  assert.match(ok, /- 数据质量：\[OK\]\n- 问题摘要：无\n/);
+  const broken = qidian.renderMarkdown(
+    { label: "月票榜" },
+    [
+      { rank: 1, title: "甲", author: "a", genre: "玄幻·东方玄幻", words: "12万字" },
+      { rank: 2, title: "乙", author: "b", genre: "", words: "8万字" },
+      { rank: 3, title: "丙", author: "c", genre: "", words: "9万字" },
+    ],
+    "https://m.qidian.com/rank/yuepiao/",
+    "mobile-ssr"
+  );
+  assert.match(broken, /- 数据质量：\[存在问题\]\n- 问题摘要：题材缺失 2 \/ 3 条\n/);
+  const library = qidian.renderMarkdown(
+    { label: "男频书库人气新书" },
+    [{ rank: 1, title: "甲", library: true }],
+    "https://www.qidian.com/all/action0-size1-update1/",
+    "cdp-pc",
+    ["- 数据质量：[OK]", "- 问题摘要：无"]
+  );
+  assert.strictEqual((library.match(/数据质量/g) || []).length, 1, "书库新书自带质量行，不能再加一份");
+
+  const ciweimao = loadFresh(path.join(repoRoot, "skills/story-long-scan/scripts/ciweimao-rank-scraper.js"));
+  const full = Array.from({ length: 10 }, (_, i) =>
+    i === 0
+      ? { rank: 1, title: "书1", author: "猫作者", metric: "1.2万" }
+      : { rank: i + 1, title: `书${i + 1}`, genre: "同人", metric: "9876" }
+  );
+  const urls = full.map((e) => ({ title: e.title, url: `https://www.ciweimao.com/book/${e.rank}` }));
+  const good = ciweimao.renderRankFile({ label: "月票榜" }, full, urls, "2026-10-17T02:00:00.000Z");
+  assert.match(good, /- 数据质量：\[OK\]\n- 问题摘要：无\n/);
+  assert(good.includes("### #1 书1\n*猫作者 · 1.2万*\n[作品页](https://www.ciweimao.com/book/1)"), good);
+  assert(good.includes("### #2 书2\n*同人 · 9876*"), good);
+  const thin = ciweimao.renderRankFile({ label: "月票榜" }, full.slice(0, 3), [], "2026-10-17T02:00:00.000Z");
+  assert.match(thin, /- 数据质量：\[存在问题\]\n- 问题摘要：只解析到 3 条（每榜 10 条）；作品页链接只匹配到 0 \/ 3 条\n/);
+}
+
 testCdpUtils(longUtilsPath);
 testWindowsInvocationBuilder(longUtilsPath);
 testLocalDateStamp(longUtilsPath);
@@ -2253,6 +2346,7 @@ testCliResultGate(longUtilsPath);
 testJjwxcDetailFailureIsolation();
 testQidianRankIsolation();
 testQidianFieldContractAndDescriptionLimit();
+testRankQualityHeaders();
 testQidianCaptchaCheckIgnoresBookText();
 testQidianLibraryFontDecoding();
 testQidianLibraryPagingE2E();

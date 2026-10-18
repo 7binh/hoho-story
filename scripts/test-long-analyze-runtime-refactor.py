@@ -623,9 +623,15 @@ def test_audit_stage_and_mapping_regressions() -> None:
             path.write_text("有效深度拆解", encoding="utf-8")
         (root / "快速预览.md").write_text("有效快速预览", encoding="utf-8")
         (root / "角色").mkdir()
-        (root / "角色" / "人物.md").write_text("有效人物档案", encoding="utf-8")
+        (root / "角色" / "角色关系.md").write_text("| 关系ID | 主体 → 客体 |\n|---|---|\n", encoding="utf-8")
         (root / "设定" / "世界观").mkdir(parents=True)
         (root / "设定" / "世界观" / "背景.md").write_text("有效世界设定", encoding="utf-8")
+        relation_only = run(MANAGE, "mark-stage", "--root", root, "--stage", "stage4")
+        require(relation_only.returncode != 0 and "角色/*.md" in json.loads(relation_only.stdout).get("detail", ""),
+                "只有角色关系表、没有角色档案时 Stage 4 不能标 completed：" + relation_only.stdout)
+        require("stage4" in json.loads(run(MANAGE, "plan", "--root", root).stdout)["required_stages"],
+                "只有角色关系表时检查器仍要报 Stage 4 待补")
+        (root / "角色" / "人物.md").write_text("有效人物档案", encoding="utf-8")
         (root / "拆文报告.md").write_text("有效拆文报告", encoding="utf-8")
         for stage in ("stage3", "stage4", "stage5", "stage6"):
             marked = run(MANAGE, "mark-stage", "--root", root, "--stage", stage)
@@ -910,7 +916,7 @@ def test_relation_chart_never_falls_back_to_pinyin() -> None:
         root = Path(temporary) / "测试书"
         (root / "角色").mkdir(parents=True)
         (root / "角色" / "角色关系.md").write_text(
-            "# 角色关系\n\n| 关系ID | 主体 → 客体 | 关系动作/类型 | 表面关系 | 真实关系 | 触发事件 | 双方得失 | 变化后状态 | 证据强度 | 证据 |\n"
+            "# 角色关系\n\n| 关系ID | 主体 → 客体 | 关系动作/类型 | 表面关系 | 真实关系 | 触发事件 | 双方得失 | 变化后状态 | 证据等级 | 证据 |\n"
             "|---|---|---|---|---|---|---|---|---|---|\n"
             "| REL-001 | 林远 → 苏晴 | 保护 | 同门 | 暗中倾慕 | 山门遇险 | 林远受伤 | 信任 | A | 第3章 |\n"
             "| REL-002 | 苏晴 → 林远 | 依赖 | 同门 | 依赖 | 山门遇险 | 苏晴脱险 | 依赖 | A | 第3章 |\n"
