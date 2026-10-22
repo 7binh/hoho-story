@@ -17,7 +17,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 1. 规划按时刻读：定方向、定设定读 `references/workflow-setup.md`，出卷纲读 `references/workflow-volume.md`，出细纲或补纲读 `references/workflow-outline.md`，只读当前时刻的；写指定章读取 `references/workflow-chapter.md`；日更先读取 `references/workflow-daily.md`，进入正文前再完整读取 `workflow-chapter.md`；大修先读 `references/workflow-revision.md`，改稿时还要读什么由它写明。
 2. 主会话直接写正文时，首次落笔前完整读取 `references/long-format.md` 与 `references/writing-craft.md`，与写手用同一套技法；`references/long-chapter-quality.md` 只在排查具体问题时读，去味走检测器，不预读。交给 narrative-writer 时，由该 agent 按自己的 reference 表完成写前读取，主会话不得用未读 reference 的临时 prompt 替代。
 3. 本章技法按下方「本章技法」一段选，至多一份；主会话自己写时按那段只读指定小节，这是本条唯一允许的按节读。
-4. 正文写前，references 读完后立即重读当前用户请求、本章细纲和卷纲，先在上下文里**记下本轮约束**：原样记录用户明确字数范围、必发生、禁止发生、精确时间锚与本章停笔点、章尾新债。references 只提供技法，不得覆盖这些项目事实；作者给的字数范围写在细纲「字数范围」行（命令参数只作临时覆盖），有它就不用默认 ±15%。交付前逐项复核：字数带外按 `workflow-chapter.md` 的收口流程交用户处置，不自动补字；其余项越界不算完成。
+4. 正文写前，references 读完后立即重读当前用户请求、本章细纲和卷纲，先在上下文里**记下本轮约束**：原样记录用户明确字数范围、必发生、禁止发生、精确时间锚与本章停笔点、章尾新债。将作者要求传给组装脚本 `{PYTHON} {skill 根}/scripts/build_writer_prompt.py --project {项目根} --chapter {N} --request "{作者本轮要求}" --out`，脚本自动载入作者生效边界并生成 `compliance_contract.json`。references 与细纲只提供剧情蓝图与技法，不得推翻或稀释作者已确认的要求。写后由 `storyctl chapter check` 自动运行合规门，`chapter commit` 强制核验，违规或过期报告将直接阻断提交；字数带外按 `workflow-chapter.md` 的收口流程交用户处置，不自动补字；其余项越界不算完成。
 
 任一必需路径不存在、不可读或未读完时立即停止，报告准确路径，**不得先写正文再补读**。写前必读按当前任务、当前会话重新执行；旧会话的“读过”不能沿用。
 
@@ -108,7 +108,7 @@ metadata: {"openclaw":{"source":"https://github.com/zenstory-ai/oh-story-claudec
 
 #### 单章写作流程
 
-**执行前先读 [references/workflow-chapter.md](references/workflow-chapter.md)**，按其步骤 1-13 执行。日更批量另加载 `references/workflow-daily.md`。
+**执行前先读 [references/workflow-chapter.md](references/workflow-chapter.md)**，按其步骤 1-13 执行。本流程已内置作者意图保全与写后合规门（Post-Writing Compliance Gate）：写前由 `build_writer_prompt.py` 生成合规契约，写后由 `storyctl chapter check` 自动验证作者要求与创作边界，`storyctl chapter commit` 在提交前执行基于 SHA-256 的 Fail-Closed 强制卡口。日更批量另加载 `references/workflow-daily.md`。
 
 #### 追踪
 

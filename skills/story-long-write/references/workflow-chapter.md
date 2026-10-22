@@ -15,7 +15,11 @@
 1. **检查细纲**：读 `大纲/细纲_第{N}章.md` 全文，取「单元ID/位置」，跑 `outline_view.py --unit {单元ID} {卷纲路径}` 取卷契约、全卷常任裁定、当前剧情单元与终局底牌边界（日更同单元本批复用，不重跑）——**不整读卷纲**。缺细纲或缺字段见开头「缺细纲」。
 2. **读取上下文**：`tracking_commit.py check`（取 `last_committed_chapter` / `state_revision`，完整 state 不进 prompt）→ `追踪/上下文.md` 全 7 栏 → 细纲点名的 `设定/势力/`、`设定/世界观/` 相关条目（为「必读设定」槽摘句）；角色卡交给写手时只在「涉及角色」列名字、由写手读，主会话自己写时才读。上一章结尾由脚本代读，承接存疑才自己读。久别角色读 `追踪/角色状态/{名}.md`；更旧的信息按 workflow-daily「旧信息查找步骤」定点查。
 3. **写前准备**：
-   - **先跑组装脚本**：`{PYTHON} {skill 根}/scripts/build_writer_prompt.py --project {项目根} --chapter {N} --out`。`====` 以上是 prompt、以下是核对报告；退出码 2 ＝数据问题，修完重跑，不手拼绕过。
+   - **先跑组装脚本**：`{PYTHON} {skill 根}/scripts/build_writer_prompt.py --project {项目根} --chapter {N} --request "{作者本轮要求}" --out`（若要求较长或有多条，可写入临时文件并传 `--request-file {路径}`；无特殊要求可省略 `--request`）。脚本会自动执行：
+     1. **注入作者意图与创作边界**：最高优先级保留作者本轮要求，自动装载 `设定/`、本书及项目级 `作者记忆/` 中的生效创作边界（负面约束/禁止项/必发生项），细纲无权自行动摇或冲淡作者已确认的要求；
+     2. **冲突仲裁**：当细纲与作者新要求冲突时，以作者要求为准并产出细纲覆盖提案；
+     3. **生成合规契约**：自动在工作目录生成 `{工作目录}/compliance_contract.json`（含契约 SHA-256 签名，用于写后合规门校验）。
+     `====` 以上是 prompt、以下是核对报告；退出码 2 ＝数据问题，修完重跑，不手拼绕过。
    - **状态筛选**：从续写状态卡取本章在场角色、要碰/要避的伏笔、必须履行的下一章承诺与相关长期约束，写成本节速记。
    - **召回**：核对报告写「召回降档：成立」时直接用脚本给的情绪/节奏；不成立时才完整读取 [benchmark-recall.md](benchmark-recall.md) 执行全量召回。
    - **意图确认**：一句话写清本章意图（例：「快节奏打脸——账单暴露→逼问→反证→公开代价」）。对照：细纲是唯一剧情蓝图，新增物按「新增物三级」；底牌不因章尾钩子提前泄露；细纲重复的同一要求只兑现一次；爽点前有可指认的铺垫，打脸/揭露章写在场配角的差异反应。
@@ -24,14 +28,28 @@
 5. **标题预检**：看核对报告的重名结论；重名或明显重复才按核心事件改名，并同步细纲标题与正文文件名。
 6. **写作准备**：交给写手时按 [agent-calls.md](agent-calls.md)「写一章」分前后两组交付；主会话自己写时也分两组：前组写到 `前组.md` 后跑一次 `storyctl.py wordcount checkpoint --file {前组} --project {项目根} --chapter {N}`，后组按 `remaining_user_range` 收、原文拼接；作者要一次成文才写全章。批准内容写完即停，不为字数加剧情；实际长度由步骤 8 收口。
 7. **正文执行**：已部署 narrative-writer 时按 [agent-calls.md](agent-calls.md)「写一章」填槽交给它，交付后核对它只消费了批准情节点。未部署则主会话自己写：不填槽，按脚本输出与本节速记直接写，新增物自列申报表。写完逐段再看一遍检测器抓不住的三类 AI 腔：用工整对仗或金句替读者点题；叙述者跳出来总结情绪、解释动机、说出细纲的结论；章尾用感悟、升华或预告收。遇到就删，或改成人物的动作、对话、物件，让读者自己看出来。
-8. **核情节点落点，再一次检测收口**：
+8. **核情节点落点与合规门检测（再一次检测收口）**：
    - 细纲每个情节点**至少出现一次**，漏即退回补写批准内容。不以字数为由。
-   - 运行 `{PYTHON} {skill 根}/scripts/storyctl.py chapter check --project {项目根} --chapter {N} --fix-punctuation`：一次整理标点并跑 AI 句式、`check-degeneration.js` 退化、细纲照搬与字数检测（去味管线：检测器 → 按检测器逐条提示的修法定点改写 → 复扫）；文件改动后重跑，不再分别调各检测脚本。
-   - 按返回的 `status` 走：`ready` → 完成步骤 9-12 再提交。`blocked` / `invalid`（退出码 1）→ 就地修净再重跑。`needs_decision`（字数出带）→ 看 `available_actions`：欠字不补不重试，按字数问法请作者选；超字把删除区间随 `compress-once` 交 narrative-writer 一次净删、零新语义，复检仍带外也请作者选。`tool_unavailable`（退出码 3）→ 不提交，按 `quality.tool_errors` 说明具体原因；缺 Node 时提示安装 Node.js 18+。退出码 2（`status: error`）按 `error_code` 修命令。
+   - 运行 `{PYTHON} {skill 根}/scripts/storyctl.py chapter check --project {项目根} --chapter {N} --fix-punctuation`：一次整理标点并跑 AI 句式、`check-degeneration.js` 退化、细纲照搬、字数检测，**并自动执行写后合规门（Post-Writing Compliance Gate）**：
+     - 自动核验工作目录中的 `compliance_contract.json`，比对初稿正文的 SHA-256 哈希值；
+     - 严格校验作者要求的必发生项是否真实出现、禁止事项与负面边界是否被违背、大纲与设定的越界修改是否得到授权；
+     - 检验结果落盘为 `{工作目录}/compliance_report.json`（绑定 draft SHA-256 与 contract SHA-256）。初稿文件在 `正文/` 完整保留，绝不静默删除或覆盖。
+   - 按返回的 `status` 走：
+     - `ready` → 质量检查与合规均通过（`status: PASS`），完成步骤 9-12 再提交。
+     - `blocked` / `invalid`（退出码 1）→ 若为合规拦截（`error_code: COMPLIANCE_BLOCKED`），查看输出中 `findings` 或读取 `compliance_report.json`，查明违规证据并在正文中定点修复；若为文本退化或严重 AI 腔，就地修净。**修复正文后必须重跑 `chapter check` 重新生成绑定的 PASS 报告，旧报告自动作废**。
+     - `needs_decision` → 若为合规需要作者裁决（`error_code: COMPLIANCE_NEEDS_DECISION`），向作者清晰呈现冲突与选项，由作者拍板后再决定是否覆盖或改纲；若为字数出带，看 `available_actions`：欠字不补不重试，按字数问法请作者选；超字把删除区间随 `compress-once` 交 narrative-writer 一次净删、零新语义，复检仍带外也请作者选。
+     - `tool_unavailable`（退出码 3）→ 不提交，按 `quality.tool_errors` 说明具体原因；缺 Node 时提示安装 Node.js 18+。退出码 2（`status: error`）按 `error_code` 修命令。
 9. **检查钩子、爽点与契约**：章尾有往下看的理由（低压/过场章留阶段目标即可）；高压/推进章爽点到位；对着成稿过契约四问——主角是否靠自己的选择挣到本章结果？收益是否被配角、机构或巧合无交换地拿走？有没有提前动用后面的底牌？旧期待付利息、留新期待了吗？任一问不过就按问改：没挣到→让结果落在他的选择或判断上；收益被拿走→补交换或让他拿回控制点；提前用了底牌→换成本卷已解锁的手段；没付利息→给旧期待一个小兑现再留新钩。不达标只修批准内容，修后重跑步骤 8；需补强、契约破坏都在本章汇报里告诉作者。
 10. **元信息扫描**：标题行以外清掉第X章、上一章、本章、前文、后文、伏笔、细纲、读者这类工程词，改成角色能感知的事件锚点（「比第一章那三秒开火更疼」→「比那三秒开火更疼」）；角色真实读到「第X章」或本身是作者/读者的除外。
-11. **检测结果处理**（按提示定点改写）：严重度读作必须修 / 建议看 / 仅提示——检测器 blocking 与 checker 的 S1/S2 必须修，advisory 与 S3 建议看，S4 仅提示。`quality.blocking_findings` 就地改到净；`advisories` 逐条读原文判断，确属问题才改，不为归零机械改写。`formulaic-parallelism` 连同台词一起复核；细纲照搬里判定保留的补进细纲「复沓锚句」（这是登记，不算改大纲，不用暂停问作者）。禁用词表不整读，拿不准的二级词才查 `references/banned-words.md` 对应条目。改完只重跑步骤 8 复扫，不另安排全篇去味。
-12. **更新追踪**：运行 `{PYTHON} {skill 根}/scripts/tracking_commit.py draft --project {项目根} --chapter {N}`，预填工作目录 `tracking.json`，并给出在场核心角色的当前快照和每类条目的样板（`shapes`）。只填 `delta` 与留空的本章结尾时间、场景：变化的核心角色（含本章首次进场的核心角色，草稿里没有就新建一份）把快照整份改好放进 `character_snapshots`；撤下的长期约束或风险从 `context` 删掉并把原文列进 `delta.retired_context_items`。不读脚本源码或 state 找格式；出错时才读 [tracking-transaction.md](tracking-transaction.md)。带内执行 `{PYTHON} {skill 根}/scripts/storyctl.py chapter commit --project {项目根} --chapter {N} --input {工作目录}/tracking.json`，作者接受当前长度把 `commit` 换成 `accept-current-length`。报错按提示改完重跑同一命令；体积超目标只是提醒，逐章记录写要点即可，不必为它删改。判为「登记」的申报项在这次事务里一并登记；有「先问作者」项时暂停提交与下一章。「本章没写成的」：细纲没给的追加进本单元排纲底稿「建纲追加」，先问作者的走下方处置表。
+11. **检测结果处理**（按提示定点改写）：
+    - 严重度读作必须修 / 建议看 / 仅提示——合规门违规、检测器 blocking 与 checker 的 S1/S2 必须修，advisory 与 S3 建议看，S4 仅提示。
+    - **合规门违规修复**：若步骤 8 返回 `COMPLIANCE_BLOCKED`，对照 `compliance_report.json` 中违规条目（缺少必须发生的要素、出现禁止描写的设定或越过创作边界），在正文中定向修改或补全。正文修改后任何旧报告均因 SHA-256 不符而失效（stale），必须重新运行步骤 8 `chapter check` 生成新的合规报告。严禁未重跑检查直接提交。
+    - `quality.blocking_findings` 就地改到净；`advisories` 逐条读原文判断，确属问题才改，不为归零机械改写。`formulaic-parallelism` 连同台词一起复核；细纲照搬里判定保留的补进细纲「复沓锚句」（这是登记，不算改大纲，不用暂停问作者）。禁用词表不整读，拿不准的二级词才查 `references/banned-words.md` 对应条目。改完只重跑步骤 8 复扫，不另安排全篇去味。
+12. **更新追踪与合规强制提交**：
+    - 运行 `{PYTHON} {skill 根}/scripts/tracking_commit.py draft --project {项目根} --chapter {N}`，预填工作目录 `tracking.json`，并给出在场核心角色的当前快照和每类条目的样板（`shapes`）。只填 `delta` 与留空的本章结尾时间、场景：变化的核心角色（含本章首次进场的核心角色，草稿里没有就新建一份）把快照整份改好放进 `character_snapshots`；撤下的长期约束或风险从 `context` 删掉并把原文列进 `delta.retired_context_items`。不读脚本源码或 state 找格式；出错时才读 [tracking-transaction.md](tracking-transaction.md)。
+    - 带内执行 `{PYTHON} {skill 根}/scripts/storyctl.py chapter commit --project {项目根} --chapter {N} --input {工作目录}/tracking.json`，作者接受当前长度把 `commit` 换成 `accept-current-length`。
+    - **Fail-Closed 合规门校验**：`chapter commit` 自动执行强制校验——要求必须存在状态为 `PASS` 的合规报告，且报告内的 `contract_sha256` 与 `draft_sha256` 必须与当前磁盘上的契约和最终正文完全吻合。若报告缺失（`COMPLIANCE_MISSING`）、哈希过期失效（`COMPLIANCE_STALE`）或存在未修复违规（`COMPLIANCE_BLOCKED`），提交将被绝对阻断（退出码 1），不会写入任何追踪事务或覆盖数据。
+    - 报错按提示改完重跑同一命令；体积超目标只是提醒，逐章记录写要点即可，不必为它删改。判为「登记」的申报项在这次事务里一并登记；有「先问作者」项时暂停提交与下一章。「本章没写成的」：细纲没给的追加进本单元排纲底稿「建纲追加」，先问作者的走下方处置表。
 13. **提交后核对**：返回 `tracking_committed: true` 即本章完成。
 
 ## 向作者汇报
@@ -82,7 +100,7 @@
 
 ## 质量检查
 
-字数范围按 SKILL.md 写前必读第 4 条。查三个维度：**情绪交付**（目标情绪是否兑现）、**契约风险**（步骤 9 契约四问）、**技术质量**（一致性、格式、禁用词；排查具体问题时才读 [long-chapter-quality.md](long-chapter-quality.md)）。
+字数范围按 SKILL.md 写前必读第 4 条。查四个维度：**合规门约束**（作者意图保全、负面边界禁止、合规契约核验）、**情绪交付**（目标情绪是否兑现）、**契约风险**（步骤 9 契约四问）、**技术质量**（一致性、格式、禁用词；排查具体问题时才读 [long-chapter-quality.md](long-chapter-quality.md)）。
 
 **写后同轮清零**：同一轮内完成步骤 8-11，blocking（含写后 hook 推回的毒句式）清零才算本章完成。**唯一豁免**：用户显式说"本章不去味/跳过检查"时，在该章标题行下加一行 `<!-- 去味:跳过 -->`（写后 hook 与下一章前的欠账拦截都认它）。退化类 blocking（复读、截断、拒绝语、工程词泄漏）只重写受影响段落，最多 2 次，仍失败按停下问法请作者定夺；故事内系统用语、弹幕、有功能的重复台词保留。
 

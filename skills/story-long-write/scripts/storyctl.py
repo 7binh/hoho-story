@@ -50,6 +50,10 @@ def _tracking_module() -> Any:
     return _load_local_module("story_tracking_for_storyctl", "tracking_commit.py")
 
 
+def _compliance_module() -> Any:
+    return _load_local_module("story_compliance_gate", "check_compliance.py")
+
+
 def _tracking_call(function: Any, *args: Any) -> Any:
     try:
         return function(*args)
@@ -273,7 +277,113 @@ def _record_over_baseline(project: Path, chapter: int, body_path: Path, actual: 
     path.write_text(json.dumps({"body_sha256": _body_digest(body_path), "actual": actual}), encoding="utf-8")
 
 
-def chapter_check(project: Path, chapter: int, author_range: Any = None) -> dict[str, Any]:
+def is_official_workflow_project(project: Path, chapter: int, input_path: Path | None = None) -> bool:
+    work_dir = chapter_work_dir(project, chapter)
+    if (work_dir / "compliance_contract.json").is_file():
+        return True
+    if (work_dir / "compliance_report.json").is_file():
+        return True
+    if (work_dir / "user_request.md").is_file() or (work_dir / "request.md").is_file():
+        return True
+    if (project / "设定" / "题材定位.md").is_file():
+        return True
+    memory_dir = project / "作者记忆"
+    if memory_dir.is_dir() and any(memory_dir.glob("*.md")):
+        return True
+    hidden_memory_dir = project / ".story" / "作者记忆"
+    if hidden_memory_dir.is_dir() and any(hidden_memory_dir.glob("*.md")):
+        return True
+    return False
+
+
+def check_compliance_gate(
+    project: Path, chapter: int, body_path: Path, *, require_compliance: bool = False,
+    input_path: Path | None = None,
+) -> dict[str, Any] | None:
+    work_dir = chapter_work_dir(project, chapter)
+    contract_path = work_dir / "compliance_contract.json"
+    report_path = work_dir / "compliance_report.json"
+    is_official = is_official_workflow_project(project, chapter, input_path=input_path)
+
+    if not contract_path.is_file() and not report_path.is_file():
+        if require_compliance or is_official:
+            raise ChapterRefused(
+                "COMPLIANCE_MISSING",
+                f"Official long-write chapter requires compliance contract ({contract_path.name} not found).",
+            )
+        return None
+
+    if not report_path.is_file():
+        raise ChapterRefused(
+            "COMPLIANCE_MISSING",
+            f"Missing compliance report for chapter {chapter}. Run compliance check before commit.",
+        )
+
+    try:
+        data = json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ChapterRefused("COMPLIANCE_INVALID", f"Compliance report is invalid or corrupted: {exc}") from exc
+
+    if not isinstance(data, dict) or data.get("schema") != "story-compliance-report/v1":
+        raise ChapterRefused("COMPLIANCE_INVALID", "Compliance report schema is invalid.")
+
+    if data.get("chapter") != chapter:
+        raise ChapterRefused(
+            "COMPLIANCE_INVALID",
+            f"Compliance report chapter mismatch: expected chapter {chapter}, found chapter {data.get('chapter')}",
+        )
+
+    if contract_path.is_file():
+        try:
+            contract_obj = json.loads(contract_path.read_text(encoding="utf-8"))
+            expected_contract_hash = contract_obj.get("contract_sha256")
+        except Exception:
+            expected_contract_hash = None
+        if not expected_contract_hash or data.get("contract_sha256") != expected_contract_hash:
+            raise ChapterRefused(
+                "COMPLIANCE_STALE",
+                "Compliance report is stale: compliance contract was modified after check.",
+            )
+
+    try:
+        current_draft_hash = hashlib.sha256(body_path.read_bytes()).hexdigest()
+    except OSError as exc:
+        raise WordcountError(f"unable to read draft body for hash: {exc}") from exc
+
+    if data.get("draft_sha256") != current_draft_hash:
+        raise ChapterRefused(
+            "COMPLIANCE_STALE",
+            "Compliance report is stale: draft was modified after compliance check.",
+        )
+
+    if data.get("status") == "VIOLATION":
+        violations = [
+            f"{f.get('rule_text')}: {f.get('verbatim_quote')}"
+            for f in data.get("findings", [])
+            if f.get("status") == "VIOLATION"
+        ]
+        detail = "; ".join(violations) or "Draft violates author constraints"
+        raise ChapterRefused("COMPLIANCE_BLOCKED", f"Draft violates compliance constraints: {detail}")
+
+    if data.get("status") == "NEEDS_AUTHOR_DECISION":
+        raise ChapterRefused(
+            "COMPLIANCE_NEEDS_DECISION",
+            "Compliance check requires author confirmation before commit.",
+        )
+
+    if data.get("status") != "PASS":
+        raise ChapterRefused(
+            "COMPLIANCE_BLOCKED",
+            f"Compliance check status is {data.get('status')}; must be PASS to commit.",
+        )
+
+    return data
+
+
+def chapter_check(
+    project: Path, chapter: int, author_range: Any = None, *, require_compliance: bool = False,
+    auto_verify: bool = True,
+) -> dict[str, Any]:
     outline, body_path, target, effective_range = _project_files(project, chapter, author_range)
     try:
         body = body_path.read_text(encoding="utf-8")
@@ -281,7 +391,74 @@ def chapter_check(project: Path, chapter: int, author_range: Any = None) -> dict
         raise WordcountError(f"unable to read body: {exc}") from exc
     length = evaluate_wordcount(body, target, chapter=chapter, author_range=effective_range)
     quality = check_blocking_quality(outline, body_path)
+
+    work_dir = chapter_work_dir(project, chapter)
+    contract_path = work_dir / "compliance_contract.json"
+    is_official = is_official_workflow_project(project, chapter)
+
+    compliance = None
+    compliance_error = None
+
+    if contract_path.is_file() and auto_verify:
+        # Option A: Automatically run verify_chapter_compliance on current draft during chapter check
+        try:
+            compliance_mod = _compliance_module()
+            compliance = compliance_mod.verify_chapter_compliance(
+                project=project,
+                chapter=chapter,
+                body_path=body_path,
+                contract_path=contract_path,
+            )
+            if compliance.get("status") == "VIOLATION":
+                violations = [
+                    f"{f.get('rule_text')}: {f.get('verbatim_quote')}"
+                    for f in compliance.get("findings", [])
+                    if f.get("status") == "VIOLATION"
+                ]
+                detail = "; ".join(violations) or "Draft violates author constraints"
+                compliance_error = {
+                    "status": "blocked",
+                    "error_code": "COMPLIANCE_BLOCKED",
+                    "message": f"Draft violates compliance constraints: {detail}",
+                    "findings": compliance.get("findings", []),
+                }
+            elif compliance.get("status") == "NEEDS_AUTHOR_DECISION":
+                compliance_error = {
+                    "status": "needs_decision",
+                    "error_code": "COMPLIANCE_NEEDS_DECISION",
+                    "message": "Compliance check requires author confirmation before commit.",
+                    "findings": compliance.get("findings", []),
+                }
+            elif compliance.get("status") != "PASS":
+                compliance_error = {
+                    "status": "blocked",
+                    "error_code": "COMPLIANCE_BLOCKED",
+                    "message": f"Compliance check status is {compliance.get('status')}; must be PASS to commit.",
+                    "findings": compliance.get("findings", []),
+                }
+        except Exception as exc:
+            compliance_error = {
+                "status": "blocked",
+                "error_code": "COMPLIANCE_INVALID",
+                "message": f"Compliance verification failed or produced invalid report: {exc}",
+            }
+    elif contract_path.is_file() or is_official or require_compliance:
+        try:
+            compliance = check_compliance_gate(project, chapter, body_path, require_compliance=require_compliance)
+        except ChapterRefused as exc:
+            compliance_error = {
+                "status": "blocked" if exc.code != "COMPLIANCE_NEEDS_DECISION" else "needs_decision",
+                "error_code": exc.code,
+                "message": str(exc),
+            }
+
     status = _check_status(length, quality)
+    if compliance_error is not None:
+        if compliance_error["status"] == "blocked":
+            status = "blocked"
+        elif compliance_error["status"] == "needs_decision" and status == "ready":
+            status = "needs_decision"
+
     if status == "ready":
         actions = ["commit"]
     elif status != "needs_decision":
@@ -314,6 +491,7 @@ def chapter_check(project: Path, chapter: int, author_range: Any = None) -> dict
         "length": length,
         "quality": quality,
         "compression": compression,
+        "compliance": compliance or compliance_error,
         "state_revision": state["state_revision"],
         "tracking_committed": state["last_committed_chapter"] >= chapter,
         "next_chapter_started": state["last_committed_chapter"] > chapter,
@@ -382,9 +560,16 @@ def _require_acceptable_length(
 
 def chapter_commit(
     project: Path, chapter: int, input_path: Path, *, accept_current_length: bool,
-    author_range: Any = None, force: bool = False,
+    author_range: Any = None, force: bool = False, require_compliance: bool = False,
 ) -> dict[str, Any]:
-    checked = chapter_check(project, chapter, author_range)
+    checked = chapter_check(project, chapter, author_range, require_compliance=require_compliance, auto_verify=False)
+    if checked.get("compliance") and isinstance(checked["compliance"], dict):
+        comp = checked["compliance"]
+        c_status = comp.get("status")
+        if c_status in ("blocked", "VIOLATION"):
+            raise ChapterRefused(comp.get("error_code", "COMPLIANCE_BLOCKED"), comp.get("message", "compliance check failed: violations found"))
+        if c_status in ("needs_decision", "NEEDS_AUTHOR_DECISION"):
+            raise ChapterRefused(comp.get("error_code", "COMPLIANCE_NEEDS_DECISION"), comp.get("message", "compliance check requires author confirmation"))
     if checked["status"] == "tool_unavailable":
         raise ChapterRefused(
             "TOOL_UNAVAILABLE",
@@ -405,6 +590,10 @@ def chapter_commit(
                 "chapter length is outside the user band; use accept-current-length or revise it",
             )
         resolution = "within_user_band"
+    _, body_path, _, _ = _project_files(project, chapter, author_range)
+    compliance = check_compliance_gate(project, chapter, body_path, require_compliance=require_compliance, input_path=input_path)
+    if compliance is not None:
+        checked["compliance"] = compliance
     document = _read_json_object(input_path, "tracking transaction")
     require(document.get("chapter") == chapter, "tracking transaction chapter does not match command")
     require("wordcount" not in document, "tracking transaction must not provide wordcount")
@@ -454,6 +643,8 @@ def _build_parser() -> StructuredArgumentParser:
         else:
             subparser.add_argument("--fix-punctuation", action="store_true",
                                    help="先就地整理正文标点，再做检查")
+        subparser.add_argument("--require-compliance", action="store_true",
+                               help="强制要求合规检查通过后才允许提交")
         if command == "accept-current-length":
             subparser.add_argument("--force", action="store_true",
                                    help="作者明确拍板：越过欠长一半下限与超长先压缩一次的要求")
@@ -536,9 +727,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "wordcount":
         return _wordcount_command(args, author_range)
     try:
+        require_compliance = getattr(args, "require_compliance", False)
         if args.chapter_command == "check":
             fixed = fix_punctuation(args.project, args.chapter, author_range) if args.fix_punctuation else None
-            result = chapter_check(args.project, args.chapter, author_range)
+            result = chapter_check(args.project, args.chapter, author_range, require_compliance=require_compliance)
             if fixed is not None:
                 result["punctuation_fixed"] = fixed
         else:
@@ -546,6 +738,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.project, args.chapter, args.input,
                 accept_current_length=args.chapter_command == "accept-current-length",
                 author_range=author_range, force=getattr(args, "force", False),
+                require_compliance=require_compliance,
             )
     except (WordcountError, OSError, UnicodeError) as exc:
         code = exc.code if isinstance(exc, ChapterRefused) else "CHECK_FAILED"

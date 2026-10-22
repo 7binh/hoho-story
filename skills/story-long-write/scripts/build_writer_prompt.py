@@ -39,13 +39,26 @@ import json
 import re
 import subprocess
 import sys
+import importlib.util
+from typing import Any
 from pathlib import Path
 from outline_view import parse as parse_volume
+
+
+def _load_local_module(name: str, filename: str) -> Any:
+    path = Path(__file__).with_name(filename)
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"TOOL_UNAVAILABLE: {filename}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 TAIL_CHARS = 400          # 上一章结尾注入的目标字符数（按整行回退，不切半句）
 STATE_SECTIONS = ("当前位置", "长期约束", "核心角色状态", "活跃伏笔", "近三章速记", "下一章承诺", "连贯性风险")
 SLOT_MARK = "［主会话填］"
-AUTHOR_DECIDED_CHARS = 600  # 「作者已定」注入上限（去空白字数）；超了截断，写手按提示回原文看
+AUTHOR_BOUNDARIES_MAX_CHARS = 3500  # Ranh giới/quy tắc tác giả: tăng từ 600 lên 3500 để không cắt cụt âm thầm
+AUTHOR_DECIDED_CHARS = 600  # Tương thích ngược với các import cũ
 WORK_ROOT = (".story", "work")
 
 
@@ -268,23 +281,331 @@ def match_genre_cards(project: Path):
     return [(card, level) for _, card, level in hits[:2]]
 
 
-def author_decided(project: Path):
-    """`设定/题材定位.md`「## 作者已定」一节：去掉模板占位行；返回 (正文, 是否截断)。没有这一节返回 (None, False)。"""
+BOUNDARY_HEADER_PATTERN = re.compile(
+    r"^##[ \t]*(?:\d+[\.、\s]*)?(?:"
+    r"作者已定|创作边界|作者要求|"
+    r"Tác\s+giả\s+đã\s+chốt|Ranh\s+giới\s+sáng\s+tác|Ranh\s+giới\s+tác\s+giả|Yêu\s+cầu\s+tác\s+giả|"
+    r"Author\s+Boundaries|Author\s+Confirmed\s+Boundaries|Creative\s+Boundaries|Author\s+Requirements"
+    r")[^\n]*\n(.*?)(?=^#{1,2}[ \t]|\Z)",
+    re.M | re.S | re.IGNORECASE
+)
+
+COMPOUND_NOUNS_PATTERN = re.compile(
+    r"\b(?:cấm\s+địa|cấm\s+cung|cấm\s+thuật|cấm\s+thành|cấm\s+thư|biển\s+cấm|lệnh\s+cấm|khu\s+cấm)\b|"
+    r"(?:禁地|禁区|紫禁城|禁军|禁书)",
+    re.IGNORECASE
+)
+
+DIRECTIVE_PATTERNS = [
+    re.compile(r"(?:^|\s|[-*+]\s*)(?:CẤM\b|NGHIÊM CẤM\b|TUYỆT ĐỐI KHÔNG\b|KHÔNG ĐƯỢC\b|KHÔNG CHO PHÉP\b|ĐỪNG\b|TỪ CHỐI\b)", re.IGNORECASE),
+    re.compile(r"(?:^|\s|[-*+]\s*)(?:BẮT BUỘC\b|NHẤT THIẾT PHẢI\b|TUYỆT ĐỐI PHẢI\b)", re.IGNORECASE),
+    re.compile(r"(?:严禁|禁止|切勿|绝不(?:许|可)|不许|必须)"),
+    re.compile(r"\b(?:MUST NOT|FORBIDDEN|NEVER|DO NOT|MANDATORY|STRICTLY PROHIBITED|STRICTLY FORBIDDEN)\b", re.IGNORECASE),
+]
+PRIORITY_CONSTRAINT_PATTERNS = DIRECTIVE_PATTERNS
+
+CONTRADICTION_RULES = [
+    (
+        "Quan hệ gia đình / Con một vs Anh chị em",
+        re.compile(r"\b(?:con một|独生|only child)\b", re.IGNORECASE),
+        re.compile(r"\b(?:em trai|anh trai|chị gái|em gái|anh em|chị em|brother|sister|弟弟|哥哥|妹妹|姐姐)\b", re.IGNORECASE),
+        "Thiết lập xác định nhân vật là con một nhưng yêu cầu lại nhắc đến anh/chị/em"
+    ),
+    (
+        "Tình trạng sinh tử",
+        re.compile(r"\b(?:đã chết|tử vong|đã mất|hy sinh|đã qua đời|已死|去世|dead|deceased)\b", re.IGNORECASE),
+        re.compile(r"\b(?:xuất hiện|đến gặp|nói chuyện|còn sống|gọi điện|appears|meets)\b", re.IGNORECASE),
+        "Nhân vật đã tử vong nhưng xuất hiện bình thường không qua hồi tưởng/ảo giác"
+    ),
+    (
+        "Tình trạng mất tích / Bị giam cầm",
+        re.compile(r"\b(?:mất tích|chưa tìm thấy|bị bắt cóc|bị giam|missing|kidnapped)\b", re.IGNORECASE),
+        re.compile(r"\b(?:ở nhà|đi dạo|xuất hiện bình thường)\b", re.IGNORECASE),
+        "Nhân vật đang mất tích/bị giam nhưng xuất hiện tự do"
+    ),
+]
+
+
+def is_critical_constraint(line: str) -> bool:
+    """Xác định dòng có phải là ràng buộc/chỉ thị cấm đoán hoặc bắt buộc quan trọng.
+    Loại trừ các danh từ ghép thông thường như 'cấm địa', 'cấm cung', 'biển cấm' để tránh false positives.
+    """
+    cleaned = COMPOUND_NOUNS_PATTERN.sub(" ", line)
+    return any(p.search(cleaned) for p in DIRECTIVE_PATTERNS)
+
+
+def author_decided(project: Path, report: list = None):
+    """Tìm phần ranh giới/quy định của tác giả trong 设定/题材定位.md.
+    Hỗ trợ đa ngôn ngữ (tiếng Việt, tiếng Trung, tiếng Anh), các tiêu đề có số thứ tự.
+    Giữ ngân sách cơ bản AUTHOR_DECIDED_CHARS (600) cho các quy tắc thường nhật,
+    đồng thời bảo toàn các ràng buộc cấm/bắt buộc quan trọng (CẤM, 严禁, MUST NOT)
+    lên đến AUTHOR_BOUNDARIES_MAX_CHARS (3500) mà không bị cắt cụt âm thầm.
+    Nếu ngay cả ràng buộc quan trọng cũng vượt quá 3500 ký tự, cảnh báo rõ ràng.
+    Trả về (nội dung, is_cut, is_budget_exhausted).
+    """
     text = read_text(project / "设定" / "题材定位.md") or ""
-    match = re.search(r"^##[ \t]*作者已定[^\n]*\n(.*?)(?=^#{1,2}[ \t]|\Z)", text, re.M | re.S)
+    match = BOUNDARY_HEADER_PATTERN.search(text)
     if not match:
-        return None, False
+        return None, False, False
     lines = [line.rstrip() for line in match.group(1).splitlines()
              if line.strip() and not re.fullmatch(r"\s*[-*+]?\s*\{.*\}\s*", line)]
-    kept, used, cut = [], 0, False
-    for line in lines:
-        size = len(re.sub(r"\s", "", line))
-        if used + size > AUTHOR_DECIDED_CHARS:
-            cut = True
-            break
-        kept.append(line)
-        used += size
-    return "\n".join(kept), cut
+    if not lines:
+        return None, False, False
+
+    total_size = sum(len(re.sub(r"\s", "", line)) for line in lines)
+    if total_size <= AUTHOR_DECIDED_CHARS:
+        return "\n".join(lines), False, False
+
+    # Vượt quá 600 ký tự: giữ các quy tắc thường nhật tới 600, nhưng LUÔN bảo toàn các ràng buộc cấm/bắt buộc
+    critical_lines = [l for l in lines if is_critical_constraint(l)]
+    regular_lines = [l for l in lines if not is_critical_constraint(l)]
+
+    kept = []
+    used_regular = 0
+    for l in regular_lines:
+        size = len(re.sub(r"\s", "", l))
+        if used_regular + size <= AUTHOR_DECIDED_CHARS:
+            kept.append(l)
+            used_regular += size
+
+    # Các ràng buộc cấm/bắt buộc tối quan trọng luôn được giữ (tối đa AUTHOR_BOUNDARIES_MAX_CHARS)
+    used_total = used_regular
+    dropped_critical = 0
+    for l in critical_lines:
+        size = len(re.sub(r"\s", "", l))
+        if used_total + size <= AUTHOR_BOUNDARIES_MAX_CHARS:
+            kept.append(l)
+            used_total += size
+        else:
+            dropped_critical += 1
+
+    line_index = {l: i for i, l in enumerate(lines)}
+    kept.sort(key=lambda l: line_index.get(l, 0))
+    is_budget_exhausted = (dropped_critical > 0)
+    return "\n".join(kept), True, is_budget_exhausted
+
+
+def load_author_memory_markdown_files(project: Path, report: list = None):
+    """Đọc các file markdown do tác giả viết trong thư mục công khai 作者记忆/ hoặc docs/作者记忆/ cấp sách.
+    Không quét thư mục ẩn .story (đây là metadata nội bộ của author_memory_commit).
+    Bỏ qua các file ẩn/cache (bắt đầu bằng . hoặc _), file rỗng hoặc file thuộc phạm vi sách khác.
+    Trả về danh sách các tuple (rel_path_str, content).
+    """
+    results = []
+    seen = set()
+    candidate_dirs = [
+        (project / "作者记忆", "作者记忆"),
+        (project / "docs" / "作者记忆", "docs/作者记忆"),
+    ]
+    checked_any = False
+    for mdir, prefix in candidate_dirs:
+        if not mdir.is_dir():
+            continue
+        checked_any = True
+        for entry in sorted(mdir.glob("*.md")):
+            if entry.name.startswith((".", "_")):
+                continue
+            if entry.name in seen:
+                continue
+            text = read_text(entry)
+            if not text or not text.strip():
+                if report is not None:
+                    report.append(f"作者记忆文件：跳过 {prefix}/{entry.name}（内容为空）")
+                continue
+            # Kiểm tra scope nếu có frontmatter YAML
+            raw = text.strip()
+            if raw.startswith("---"):
+                parts = raw.split("---", 2)
+                if len(parts) >= 3:
+                    meta = parts[1]
+                    m_book = re.search(r"^(?:book|project):\s*['\"]?([^'\"\n]+)['\"]?", meta, re.M | re.I)
+                    if m_book:
+                        target_book = m_book.group(1).strip()
+                        if target_book and target_book.casefold() != project.name.casefold():
+                            if report is not None:
+                                report.append(f"作者记忆文件：跳过 {prefix}/{entry.name}（限定书目 '{target_book}' 与当前项目 '{project.name}' 不符）")
+                            continue
+            rel_path = f"{prefix}/{entry.name}"
+            results.append((rel_path, raw))
+            seen.add(entry.name)
+            if report is not None:
+                report.append(f"作者记忆文件：从 {rel_path} 注入")
+
+    if not checked_any and report is not None:
+        report.append("作者记忆文件：未发现 作者记忆/ 或 docs/作者记忆/ 目录")
+
+    return results
+
+
+def detect_boundary_conflicts(request: str, author_boundaries: str):
+    """Phát hiện mâu thuẫn giữa yêu cầu vòng này của tác giả và Ranh giới sáng tác dài hạn (作者已定).
+    Phân biệt:
+    - Có tiền tố [RETCON] hoặc [OVERRIDE BOUNDARY] -> AUTHORIZED BOUNDARY OVERRIDE
+    - Không có tiền tố -> BOUNDARY CONFLICT warning
+    """
+    if not request or not author_boundaries:
+        return None
+
+    is_authorized = bool(re.search(r"\[(?:RETCON|OVERRIDE BOUNDARY|SỬA RANH GIỚI)\]", request, re.IGNORECASE))
+    
+    boundary_constraints = []
+    for line in author_boundaries.splitlines():
+        if is_critical_constraint(line):
+            boundary_constraints.append(line.strip())
+
+    if not boundary_constraints:
+        return None
+
+    for b_line in boundary_constraints:
+        cleaned = re.sub(
+            r"^(?:[-*+]\s*)?(?:CẤM[: ]+|NGHIÊM CẤM[: ]+|TUYỆT ĐỐI KHÔNG[: ]+|KHÔNG ĐƯỢC[: ]+|严禁[: ]+|禁止[: ]+|MUST NOT[: ]+|FORBIDDEN[: ]+)",
+            "", b_line, flags=re.IGNORECASE
+        ).strip()
+        words = [w for w in re.sub(r"[,!?。！？;:：]", " ", cleaned).split() if len(w) >= 3]
+        phrases = []
+        for n in (2, 3):
+            for i in range(len(words) - n + 1):
+                phrases.append(" ".join(words[i:i+n]))
+        phrases.extend(words)
+
+        for phrase in phrases:
+            if len(phrase) >= 4 and re.search(r"\b" + re.escape(phrase) + r"\b", request, re.IGNORECASE):
+                is_req_prohibition = bool(re.search(r"\b(?:CẤM|NGHIÊM CẤM|TUYỆT ĐỐI KHÔNG|KHÔNG ĐƯỢC|ĐỪNG|严禁|禁止|MUST NOT|FORBIDDEN|NEVER|DO NOT)\b", request, re.IGNORECASE))
+                is_boundary_prohibition = bool(re.search(r"\b(?:CẤM|NGHIÊM CẤM|TUYỆT ĐỐI KHÔNG|KHÔNG ĐƯỢC|ĐỪNG|严禁|禁止|MUST NOT|FORBIDDEN|NEVER|DO NOT)\b", b_line, re.IGNORECASE))
+                if is_req_prohibition and is_boundary_prohibition:
+                    continue
+                if is_authorized:
+                    return (
+                        "——— 【RANH GIỚI SỬA ĐỔI / AUTHORIZED BOUNDARY OVERRIDE】 ———\n"
+                        f"✅ Tác giả xác nhận sửa đổi ranh giới sáng tác dài hạn (AUTHORIZED BOUNDARY OVERRIDE):\n"
+                        f"- Ranh giới cũ: {b_line}\n"
+                        f"- Yêu cầu mới: {request.strip()}\n"
+                        "- Writer thực hiện theo yêu cầu mới của tác giả."
+                    )
+                else:
+                    return (
+                        "——— 【RANH GIỚI CẢNH BÁO / BOUNDARY CONFLICT】 ———\n"
+                        "⚠️ CẢNH BÁO XUNG ĐỘT RANH GIỚI SÁNG TÁC (BOUNDARY CONFLICT):\n"
+                        f"- Ranh giới đã chốt: \"{b_line}\"\n"
+                        f"- Yêu cầu vòng này: \"{request.strip()}\"\n"
+                        "- NGUYÊN TẮC: Nếu tác giả chủ ý thay đổi ranh giới này, vui lòng thêm tiền tố [RETCON] hoặc [OVERRIDE BOUNDARY].\n"
+                        "  Nếu là sơ suất, Writer PHẢI TUÂN THỦ ranh giới dài hạn đã chốt."
+                    )
+    return None
+
+
+def detect_outline_conflicts(request: str, author_boundaries: str, outline_text: str):
+    """Phát hiện xung đột giữa yêu cầu/ranh giới của tác giả và chi tiết đề cương (细纲).
+    Nếu có xung đột, trả về khối chỉ thị 【优先裁决 / CONFLICT OVERRIDE】 và danh sách các xung đột.
+    """
+    combined_author_rules = []
+    if request:
+        combined_author_rules.extend(request.splitlines())
+    if author_boundaries:
+        combined_author_rules.extend(author_boundaries.splitlines())
+
+    if not combined_author_rules or not outline_text:
+        return None, []
+
+    neg_pattern = re.compile(
+        r"(?:CẤM|TUYỆT ĐỐI KHÔNG|KHÔNG ĐƯỢC|ĐỪNG|KHÔNG CHO|严禁|禁止|切勿|MUST NOT|FORBIDDEN|NEVER|DO NOT)[：:\s]*(.*)",
+        re.IGNORECASE
+    )
+
+    conflicts = []
+    outline_lines = [l.strip() for l in outline_text.splitlines() if l.strip()]
+
+    stopwords = {
+        "trong", "chương", "không", "được", "nhắc", "đến", "việc", "cho", "và", "với", "của", "các", "những",
+        "phải", "để", "làm", "ở", "này", "kia", "đó", "người", "nhân", "vật", "chính", "thì", "là", "mà"
+    }
+
+    for req_line in combined_author_rules:
+        m = neg_pattern.search(req_line)
+        if not m:
+            continue
+        rest = m.group(1).strip()
+        cleaned = re.sub(r"[,!?。！？;:：]", " ", rest)
+        words = [w for w in cleaned.split() if w.lower() not in stopwords]
+
+        candidates = []
+        for n in (2, 3):
+            for i in range(len(words) - n + 1):
+                phrase = " ".join(words[i:i+n])
+                if len(phrase) >= 4:
+                    candidates.append(phrase)
+        for w in words:
+            if len(w) >= 4:
+                candidates.append(w)
+
+        for candidate in candidates:
+            pattern = re.compile(re.escape(candidate), re.IGNORECASE)
+            for o_line in outline_lines:
+                if pattern.search(o_line):
+                    if not any(c["candidate"].lower() == candidate.lower() for c in conflicts):
+                        conflicts.append({
+                            "candidate": candidate,
+                            "req_line": req_line.strip(),
+                            "outline_line": o_line
+                        })
+                    break
+
+    if not conflicts:
+        return None, []
+
+    lines = [
+        "——— 【优先裁决 / CONFLICT OVERRIDE】 ———",
+        "⚠️ PHÁT HIỆN XUNG ĐỘT GIỮA ĐỀ CƯƠNG VÀ YÊU CẦU TÁC GIẢ:",
+    ]
+    for c in conflicts:
+        lines.append(f"- Chủ đề xung đột: \"{c['candidate']}\"")
+        lines.append(f"  * Đề cương (细纲) ghi: {c['outline_line']}")
+        lines.append(f"  * Tác giả quy định: {c['req_line']}")
+    lines.append(
+        "- NGUYÊN TẮC TỐI CAO: Yêu cầu của tác giả luôn cao hơn đề cương (Author Intent Overrides Outline).\n"
+        "  Mọi chi tiết mâu thuẫn trong đề cương BỊ BÃI BỎ. Writer TUYỆT ĐỐI TUÂN THỦ yêu cầu của tác giả."
+    )
+    return "\n".join(lines), conflicts
+
+
+def detect_canon_conflicts(request: str, context_text: str):
+    """Phát hiện mâu thuẫn giữa yêu cầu tác giả và canon đã xác lập (trong 追踪/上下文.md hoặc 设定/).
+    Phân biệt giữa:
+    - [RETCON] chủ ý của tác giả -> AUTHORIZED RETCON
+    - Mâu thuẫn vô tình không có tiền tố -> CANON CONFLICT warning
+    """
+    if not request or not request.strip():
+        return None
+
+    is_retcon = bool(re.search(r"\[(?:RETCON|THAY ĐỔI THIẾT LẬP|CANON OVERRIDE|ĐỔI THIẾT LẬP)\]", request, re.IGNORECASE))
+    if is_retcon:
+        clean_req = re.sub(r"\[(?:RETCON|THAY ĐỔI THIẾT LẬP|CANON OVERRIDE|ĐỔI THIẾT LẬP)\]\s*", "", request, flags=re.IGNORECASE).strip()
+        return (
+            "——— 【CANON SỬA ĐỔI / AUTHORIZED RETCON】 ———\n"
+            "✅ Tác giả đã xác nhận sửa đổi thiết lập đã có (AUTHORIZED RETCON):\n"
+            f"- Yêu cầu sửa đổi: {clean_req}\n"
+            "- NGUYÊN TẮC: Writer tuân thủ thiết lập mới này và ghi nhận sửa đổi vào tóm tắt bàn giao."
+        )
+
+    if not context_text:
+        return None
+
+    for rule_name, canon_pattern, req_pattern, desc in CONTRADICTION_RULES:
+        if req_pattern.search(request):
+            for line in context_text.splitlines():
+                if canon_pattern.search(line):
+                    evidence = line.strip()
+                    return (
+                        "——— 【CANON CẢNH BÁO / POTENTIAL CONFLICT】 ———\n"
+                        "⚠️ CẢNH BÁO XUNG ĐỘT THIẾT LẬP (CANON CONFLICT):\n"
+                        f"- Vấn đề: {desc}\n"
+                        f"- Thiết lập đã có trong hồ sơ/ngữ cảnh: \"{evidence}\"\n"
+                        f"- Yêu cầu hiện tại của tác giả: \"{request.strip()}\"\n"
+                        "- NGUYÊN TẮC: Nếu đây là chủ ý thay đổi thiết lập của tác giả, vui lòng thêm tiền tố [RETCON] vào yêu cầu.\n"
+                        "  Nếu đây là sơ suất, Writer PHẢI TUÂN THỦ canon đã xác lập và không tự ý thay đổi."
+                    )
+
+    return None
 
 
 def query_author_memory(project: Path):
@@ -383,7 +704,7 @@ def learn_heading_form(project: Path, chapter: int, title: str):
             f"照既有章形态（{level} ＋ 章号{how}）")
 
 
-def build(project: Path, chapter: int, report: list):
+def build(project: Path, chapter: int, report: list, request: str = None):
     errors = []
 
     outline_file = find_chapter_file(project / "大纲", chapter, "细纲_")
@@ -537,8 +858,36 @@ def build(project: Path, chapter: int, report: list):
         f"分组临时文件：前组 {work_dir / '前组.md'}，后组 {work_dir / '后组.md'}"
         "（只写这里，不写 /tmp 或 正文/）。")
     parts.append(f"——— 本章意图（一句话）———\n{SLOT_MARK}")
-    parts.append("——— 作者本轮要求 ———\n"
-                 f"{SLOT_MARK} 作者这次明确说的：字数范围、必须发生、不许发生、写到哪里停、章尾要留什么；没有写「无」。")
+    decided, cut, budget_exhausted = author_decided(project, report)
+    if request and request.strip():
+        parts.append(f"——— 作者本轮要求 ———\n{request.strip()}")
+    else:
+        parts.append("——— 作者本轮要求 ———\n"
+                     f"{SLOT_MARK} 作者这次明确说的：字数范围、必须发生、不许发生、写到哪里停、章尾要留什么；没有写「无」。")
+
+    # Ranh giới sáng tác dài hạn xung đột với yêu cầu vòng này
+    boundary_block = detect_boundary_conflicts(request, decided)
+    if boundary_block:
+        parts.append(boundary_block)
+        if "AUTHORIZED" in boundary_block:
+            report.append("边界修改：已确认 AUTHORIZED BOUNDARY OVERRIDE")
+        else:
+            report.append("边界冲突：检测到潜在 BOUNDARY CONFLICT 警告")
+
+    # 细纲与作者要求冲突裁决 (Author Intent Overrides Outline)
+    override_block, outline_conflicts = detect_outline_conflicts(request, decided, outline_text)
+    if override_block:
+        parts.append(override_block)
+        report.append("细纲冲突：已生成 CONFLICT OVERRIDE 裁决指令（作者要求高于细纲）")
+
+    # Canon 冲突与 Retcon 检测
+    canon_block = detect_canon_conflicts(request, state_text)
+    if canon_block:
+        parts.append(canon_block)
+        if "AUTHORIZED RETCON" in canon_block:
+            report.append("设定修改：已确认 AUTHORIZED RETCON 意图")
+        else:
+            report.append("设定冲突：检测到潜在 CANON CONFLICT 警告")
     parts.append(slot_recall)
     # 伏笔与卷级禁忌走「主会话筛选后写进速记」这条原设计路线（步骤 3 状态筛选），
     # 不由脚本整栏注入——筛选是判断，而整栏注入还会把伏笔栏里的作者侧真相一并下放。
@@ -569,13 +918,19 @@ def build(project: Path, chapter: int, report: list):
     parts.append("——— 题材正文提示卡（genre_prose_card，只含本章相关条目）———\n"
                  f"{SLOT_MARK} 主题材抽 3-5 条、辅题材 1-2 条；只作内部校准，不进正文")
     parts.append(slot_setting)
-    decided, cut = author_decided(project)
+    # 作者已定创作边界注入
     if decided:
-        note = (f"\n（超过 {AUTHOR_DECIDED_CHARS} 字已截断，其余见 {project / '设定' / '题材定位.md'}「作者已定」，动笔前读完）"
-                if cut else "")
-        parts.append("——— 作者已定（本书的决定，高于作者记忆，与细纲冲突以细纲为准并在交付摘要里说明）———\n"
+        if budget_exhausted:
+            note = f"\n（⚠️ 超过 {AUTHOR_BOUNDARIES_MAX_CHARS} 字符安全预算，部分高优先条款已截断，其余见 {project / '设定' / '题材定位.md'}「作者已定」，动笔前读完）"
+            report.append("作者已定：已注入（⚠️ 超过3500字预算，存在截断）")
+        elif cut:
+            note = f"\n（超过 {AUTHOR_DECIDED_CHARS} 字已截断，其余见 {project / '设定' / '题材定位.md'}「作者已定」，动笔前读完）"
+            report.append("作者已定：已注入（超长截断，写手需回原文读完）")
+        else:
+            note = ""
+            report.append("作者已定：已注入")
+        parts.append("——— 作者已定（本书的决定，高于作者记忆；与细纲冲突以作者要求为准并在交付摘要里说明）———\n"
                      + decided + note)
-        report.append("作者已定：已注入" + ("（超长截断，写手需回原文读完）" if cut else ""))
     else:
         report.append("作者已定：题材定位里没有或为空，未注入")
     lines, missed, skipped, memory_error = query_author_memory(project)
@@ -599,7 +954,20 @@ def build(project: Path, chapter: int, report: list):
         memory_block += (f"\n{SLOT_MARK} 另有限定范围的作者记忆未代查（{named}）：本书适用的，"
                          "带 --genre／--workflow 跑 SKILL.md「核心方法」的 query 命令（--kind prose_style --kind story_design）后补进本块")
         report.append(f"作者记忆：限定范围未代查（{named}），归主会话判断是否适用；补查有没带上的（已在本块里的不算），章末照模板那一行用原话说")
-    parts.append("——— author_preferences（作者记忆，低优先级倾向，不逐条追求命中）———\n" + memory_block)
+    # 加载书级 Markdown 作者记忆文件 (作者记忆/*.md hoặc docs/作者记忆/*.md)
+    file_memories = load_author_memory_markdown_files(project, report)
+    file_mem_block = ""
+    if file_memories:
+        blocks = [f"[来源: {rel_path}]\n{content}" for rel_path, content in file_memories]
+        file_mem_block = "\n\n".join(blocks)
+
+    full_memory_block = memory_block
+    if file_mem_block:
+        if full_memory_block and full_memory_block != "无":
+            full_memory_block = file_mem_block + "\n\n" + full_memory_block
+        else:
+            full_memory_block = file_mem_block
+    parts.append("——— author_preferences（作者记忆，低优先级倾向，不逐条追求命中）———\n" + full_memory_block)
     parts.append("——— style_resolution ———\n"
                  f"{SLOT_MARK} 本轮请求里作者对表达的明确要求及其覆盖的默认条款（没有写「无」）；"
                  "本书文风与作者记忆的裁决见上方各块，同一裁决传去味与审稿。")
@@ -634,6 +1002,8 @@ def main(argv=None):
     parser.add_argument("--chapter", required=True, type=int)
     parser.add_argument("--out", nargs="?", const="", default=None,
                         help="prompt 留档路径；不带值时留档到本章工作目录 writer_prompt.md")
+    parser.add_argument("--request", default=None, help="Tác giả yêu cầu trực tiếp cho chương này")
+    parser.add_argument("--request-file", default=None, help="Đường dẫn file chứa yêu cầu của tác giả")
     args = parser.parse_args(argv)
 
     project = Path(args.project).resolve()
@@ -644,7 +1014,68 @@ def main(argv=None):
         return 2
 
     report = []
-    prompt, errors = build(project, args.chapter, report)
+    errors = []
+    request = None
+    request_source = None
+    other_sources = []
+
+    if args.request and args.request.strip():
+        request = args.request.strip()
+        request_source = "--request"
+
+    if args.request_file:
+        rf = Path(args.request_file)
+        if not rf.is_file():
+            errors.append(f"作者本轮要求：--request-file 指定的文件不存在（{rf}）")
+        else:
+            rf_text = read_text(rf) or ""
+            if request is None:
+                if rf_text.strip():
+                    request = rf_text.strip()
+                    request_source = f"--request-file ({rf})"
+                else:
+                    report.append(f"作者本轮要求：--request-file ({rf}) 内容为空")
+            else:
+                other_sources.append(f"--request-file ({rf})")
+
+    # Tự động phát hiện CHỈ trong thư mục làm việc của đúng chương này
+    work_dir = chapter_work_dir(project, args.chapter)
+    auto_candidates = [
+        work_dir / "user_request.md",
+        work_dir / "request.md",
+    ]
+    for auto_p in auto_candidates:
+        if auto_p.is_file():
+            auto_text = read_text(auto_p) or ""
+            if request is None:
+                if auto_text.strip():
+                    request = auto_text.strip()
+                    try:
+                        request_source = str(auto_p.relative_to(project))
+                    except ValueError:
+                        request_source = str(auto_p)
+                    break
+            else:
+                try:
+                    other_sources.append(str(auto_p.relative_to(project)))
+                except ValueError:
+                    other_sources.append(str(auto_p))
+
+    if request_source:
+        if other_sources:
+            report.append(f"作者本轮要求：采用 {request_source}，已覆盖其他来源（{'、'.join(other_sources)}）")
+        else:
+            report.append(f"作者本轮要求：已从 {request_source} 注入")
+
+    if errors:
+        sys.stderr.write("组装中止，先修数据再重跑（这不是回落手拼的理由）：\n")
+        for item in errors:
+            sys.stderr.write(f"  - {item}\n")
+        return 2
+
+    prompt, build_errors = build(project, args.chapter, report, request=request)
+    if build_errors:
+        errors.extend(build_errors)
     if prompt is None:
         sys.stderr.write("组装中止，先修数据再重跑（这不是回落手拼的理由）：\n")
         for item in errors:
@@ -663,6 +1094,27 @@ def main(argv=None):
         report.append(
             f"标题预检：《{title}》" + ("与既有章重名 → " + "、".join(clashes)
                                        if clashes else "无重名"))
+
+    # Tự động tạo hợp đồng kiểm tra tuân thủ (compliance contract) vào thư mục làm việc
+    try:
+        compliance = _load_local_module("story_compliance_gate", "check_compliance.py")
+        outline_text = read_text(outline_file) if outline_file else None
+        state_file = project / "追踪" / "上下文.md"
+        state_text = read_text(state_file) if state_file.is_file() else None
+        decided, _, _ = author_decided(project)
+        contract = compliance.build_compliance_contract(
+            project=project,
+            chapter=args.chapter,
+            author_request=request,
+            request_source="cli" if args.request else ("file" if args.request_file else "prompt_builder"),
+            outline_text=outline_text,
+            author_boundaries=decided,
+            state_text=state_text,
+        )
+        contract_path = compliance.save_compliance_contract(project, args.chapter, contract)
+        report.append(f"合规契约：已生成 {contract_path.name}")
+    except Exception as exc:
+        report.append(f"合规契约：生成警告（{exc}）")
 
     if args.out is not None:
         out = Path(args.out) if args.out else chapter_work_dir(project, args.chapter) / "writer_prompt.md"

@@ -8,6 +8,8 @@
 
 组装脚本的输出（`====` 以上）就是 prompt 骨架。**主会话填九槽**（搜 `［主会话填］`）：执行安排 ／ 本章意图 ／ 作者本轮要求 ／ 本章技法（只填类别，写手自己读）／ 本节速记 ／ 涉及角色（列名字，角色卡写手自己读）／ `genre_prose_card` ／ 必读设定 ／ `style_resolution`；外加脚本标出的条件槽（降档不成立时的情绪与节奏召回；作者偏好限定范围记忆，适用时带 `--genre`／`--workflow` 跑 SKILL.md「核心方法」的 query 命令补查）。`author_preferences` 由脚本注入，只作低优先级倾向。空槽以外一字不改，整份照抄进 Agent prompt。脚本**跑不起来**时读 [writer-prompt-fallback.md](writer-prompt-fallback.md) 手动组装并报 `Fallback: build_writer_prompt -> 手动组装`。
 
+**合规硬约束**：写手必须严格遵守 prompt 中注入的「作者本轮要求」与「创作边界」（author boundaries）。细纲不得覆盖作者已确认的要求；禁止出现禁止项（forbidden items）；必须完成本轮必发生事件。写手交付的正文将由写后合规门（compliance gate）进行 SHA-256 绑定的自动化合规检查，若违反约束，`chapter check` 会拦截并阻断提交，需就地修改直至合规。
+
 ## story-architect：定设定、出卷纲、出一批细纲（换新上下文）
 
 先跑 `{PYTHON} {skill 根}/scripts/build_architect_brief.py --project {书目录} --task world`（卷纲 `--task volume --volume {N}`，细纲 `--task outline --chapters {A-B}`，一批最多 10 章），只取输出里的任务包路径，不读包的内容。交接前确认作者在对话里定下的方向、偏好和否掉的方案都已写进 `设定/`。
