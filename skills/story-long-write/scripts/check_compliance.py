@@ -52,12 +52,64 @@ DIRECTIVE_PATTERNS = [
 
 NEGATION_CONTEXT_PATTERNS = [
     re.compile(
-        r"\b(?:không\s+(?:hề|có|được|thấy|nhắc|nói|hé\s+răng|chạm|thèm|đề\s+cập)|chẳng\s+(?:hề|có)|từ\s+chối|tuyệt\s+đối\s+không|bãi\s+bỏ)\b[^\.\n!?]{0,80}",
+        r"\b(?:(?:hoàn\s+toàn\s+)?không\s+(?:hề|có|được|thấy|nhìn\s+thấy|biết|đoán|phát\s+hiện|tìm\s+thấy|mở|nhận\s+ra|nhắc|nói|hé\s+răng|chạm|thèm|đề\s+cập)|chẳng\s+(?:hề|có|thấy|biết)|chưa\s+(?:hề|từng|bao\s+giờ|rõ|biết|thấy)|từ\s+chối|tuyệt\s+đối\s+không|bãi\s+bỏ)\b[^\.\n!?]{0,80}",
         re.IGNORECASE,
     ),
     re.compile(r"(?:不(?:曾|提|说|见|要|许)|严禁|并未|毫无|绝无)[^\.\n!?]{0,60}"),
     re.compile(r"\b(?:never|did not|refused to|not a single|without any|no mention of)\b[^\.\n!?]{0,60}", re.IGNORECASE),
 ]
+
+VIETNAMESE_PRONOUNS_PATTERN = re.compile(
+    r"\b(?:anh|hắn|cậu|chàng|y|cô|nàng|bà|ông|chị|chú|bác)(?:\s+(?:ấy|ta))?\b",
+    re.IGNORECASE,
+)
+VIETNAMESE_PRONOUNS_SET = {
+    "anh", "hắn", "cậu", "chàng", "y", "cô", "nàng", "bà", "ông", "chị", "chú", "bác", "nó", "họ"
+}
+
+VIETNAMESE_NON_CHARACTER_WORDS = {
+    "sau", "sau đó", "trước", "trước đó", "tuy", "tuy nhiên", "nhưng", "rồi", "lúc", "lúc này", "lúc đó",
+    "khi", "khi đó", "bỗng", "bỗng nhiên", "đột", "đột nhiên", "ngay", "ngay sau đó", "vì", "vì vậy",
+    "do", "do đó", "mặt", "mặt khác", "đồng", "đồng thời", "vừa", "vừa lúc đó", "chợt", "thoáng",
+    "một", "vài", "hôm", "hôm sau", "sáng", "sáng hôm sau", "đêm", "đêm đó", "tối", "tối hôm đó",
+    "trước tiên", "cuối", "cuối cùng", "thực", "thực ra", "kỳ", "kỳ thực", "quả", "quả nhiên",
+    "ngoài", "ngoài ra", "bên", "bên cạnh", "trong", "trong khi đó", "trên", "dưới", "thế", "thế nhưng",
+    "nếu", "dù", "dù vậy", "mặc", "mặc dù", "dẫu", "dẫu vậy", "lại", "còn", "riêng", "thậm", "thậm chí",
+    "chỉ", "có", "không", "chưa", "chẳng", "đã", "đang", "sẽ", "phải", "được", "bị", "bởi", "với", "từ",
+    "chương", "tập", "hồi", "phần", "mục", "đoạn",
+}
+
+
+def extract_character_candidates(
+    sentence: str, target_char: str, known_characters: set[str] | None = None
+) -> list[str]:
+    cleaned = COMPOUND_NOUNS_PATTERN.sub(" ", sentence)
+    words = re.findall(r"\b\w+\b", cleaned)
+    candidates: list[str] = []
+
+    # 1. Target character
+    if re.search(r"\b" + re.escape(target_char) + r"\b", cleaned, re.IGNORECASE):
+        candidates.append(target_char)
+
+    # 2. Known characters if provided
+    if known_characters:
+        for kc in sorted(known_characters):
+            if kc.lower() != target_char.lower() and kc not in candidates:
+                if re.search(r"\b" + re.escape(kc) + r"\b", cleaned, re.IGNORECASE):
+                    candidates.append(kc)
+
+    # 3. Capitalized tokens that could be names
+    for i, w in enumerate(words):
+        if not w[0].isupper():
+            continue
+        w_lower = w.lower()
+        if w_lower in VIETNAMESE_PRONOUNS_SET or w_lower in VIETNAMESE_NON_CHARACTER_WORDS:
+            continue
+        if w.lower() == target_char.lower() or w in candidates:
+            continue
+        candidates.append(w)
+
+    return candidates
 
 # Semantic clusters for common prohibited novel tropes / actions
 SEMANTIC_CLUSTERS = [
@@ -123,7 +175,7 @@ def find_body_file(project: Path, chapter: int) -> Path | None:
 def extract_keywords_from_constraint(text: str) -> list[str]:
     cleaned = COMPOUND_NOUNS_PATTERN.sub(" ", text)
     cleaned = re.sub(
-        r"^(?:[-*+]\s*)?(?:CẤM[: ]+|NGHIÊM CẤM[: ]+|TUYỆT ĐỐI KHÔNG[: ]+|KHÔNG ĐƯỢC[: ]+|BÃI BỎ[: ]+|严禁[: ]+|禁止[: ]+|MUST NOT[: ]+|FORBIDDEN[: ]+)",
+        r"^(?:[-*+]\s*)?(?:(?:Ranh\s+giới|Quy\s+tắc)\s*\d*[: ]+)?(?:\[[^\]]+\]\s*)?(?:CẤM[: ]+|NGHIÊM CẤM[: ]+|TUYỆT ĐỐI KHÔNG[: ]+|KHÔNG ĐƯỢC[: ]+|BÃI BỎ[: ]+|严禁[: ]+|禁止[: ]+|MUST NOT[: ]+|FORBIDDEN[: ]+)",
         "",
         cleaned,
         flags=re.IGNORECASE,
@@ -134,6 +186,7 @@ def extract_keywords_from_constraint(text: str) -> list[str]:
         "phải", "để", "làm", "ở", "người", "nhân", "vật", "thì", "là", "mà", "một", "hai", "ba", "chính",
         "nào", "mọi", "sẽ", "đã", "đang", "rằng", "gì", "ai", "tại", "vào", "ra", "lên", "xuống", "cảnh",
         "viên", "quan", "nhận", "hoặc", "tiền", "nào", "hắn", "nàng", "chúng", "ta", "ông", "bà",
+        "tuyệt", "đối", "ranh", "giới", "quy", "tắc", "phép", "cơ", "sở", "chứng", "cứ", "hợp", "lệ", "khách", "quan", "sự", "tồn", "tại", "trước", "sau", "khi",
     }
     filtered = [t for t in tokens if t.lower() not in stopwords]
     phrases = []
@@ -214,16 +267,31 @@ def build_compliance_contract(
                 continue
             cleaned = COMPOUND_NOUNS_PATTERN.sub(" ", b_line)
             if any(p.search(cleaned) for p in DIRECTIVE_PATTERNS):
+                char_match = re.search(
+                    r"\b(?:không\s+(?:để|cho)|cấm|tuyệt\s+đối\s+không\s+(?:để|cho))\s+([A-ZÀ-Ỹ][a-zà-ỹ]+)\s+(?:biết|đoán|thấy|phát\s+hiện|nhìn\s+thấy|tiếp\s+cận|tìm\s+thấy|nhận\s+ra)",
+                    b_line,
+                    re.IGNORECASE,
+                )
+                target_char = char_match.group(1) if char_match else None
+                belief_match = re.search(
+                    r"\b(?:không\s+coi|không\s+được\s+coi)\s+(?:niềm\s+tin|suy\s+nghĩ|lời\s+nói)\s+của\s+([A-ZÀ-Ỹ][a-zà-ỹ]+).*?(?:sự\s+thật\s+khách\s+quan|chân\s+lý)",
+                    b_line,
+                    re.IGNORECASE,
+                )
+                rule_type = "author_instruction" if belief_match else "prohibition"
                 keywords = extract_keywords_from_constraint(b_line)
-                rules_to_check.append({
+                rule_entry = {
                     "id": f"RULE-BND-{rule_idx:03d}",
-                    "type": "prohibition",
+                    "type": rule_type,
                     "text": b_line,
                     "scope": "book",
-                    "severity": "blocking",
+                    "severity": "blocking" if rule_type == "prohibition" else "advisory",
                     "source": "author_boundaries",
                     "keywords": keywords,
-                })
+                }
+                if target_char:
+                    rule_entry["target_character"] = target_char
+                rules_to_check.append(rule_entry)
                 rule_idx += 1
 
     # Detect Outline Conflicts (Author Request overrides Outline)
@@ -275,6 +343,13 @@ def build_compliance_contract(
                 })
                 break
 
+    known_characters = set()
+    char_dir = project / "角色状态"
+    if char_dir.is_dir():
+        for f in char_dir.glob("*.md"):
+            if not f.name.startswith((".", "_")):
+                known_characters.add(f.stem)
+
     # Canon conflicts (stub detection or retcon flag)
     canon_conflicts = []
     if "[RETCON]" in raw_req.upper():
@@ -295,6 +370,7 @@ def build_compliance_contract(
         "canon_conflicts": canon_conflicts,
         "outline_proposals": [p.get("id") for p in outline_proposals],
         "rules_to_check": rules_to_check,
+        "known_characters": sorted(list(known_characters)),
     }
 
     # Deterministic contract hash (excluding timestamp)
@@ -504,6 +580,121 @@ def verify_chapter_compliance(
             if matched_semantic:
                 continue
 
+            # Epistemic character boundary check with controlled co-reference resolution (AUDIT-P42-02)
+            target_char = rule.get("target_character")
+            if target_char:
+                char_pat = re.compile(r"\b" + re.escape(target_char) + r"\b", re.IGNORECASE)
+                action_pat = re.compile(
+                    r"\b(?:biết|đoán\s+trúng|phát\s+hiện|nhìn\s+thấy|tìm\s+thấy|mở\s+được|nhận\s+ra)\b",
+                    re.IGNORECASE,
+                )
+                kw_pat_list = [
+                    re.compile(r"\b" + re.escape(kw) + r"\b", re.IGNORECASE)
+                    for kw in keywords
+                    if len(kw) >= 4
+                ]
+
+                known_chars = set(contract.get("known_characters", []))
+                paragraphs = [p.strip() for p in re.split(r"\n\s*\n+", body_text) if p.strip()]
+                for para in paragraphs:
+                    para_sentences = [
+                        s.strip()
+                        for s in re.split(r"(?<=[.!?。！？\n])\s*", para)
+                        if s.strip()
+                    ]
+                    active_candidates: list[str] = []
+                    active_sentence_idx = -1
+
+                    for idx, s in enumerate(para_sentences):
+                        s_cleaned = COMPOUND_NOUNS_PATTERN.sub(" ", s)
+                        action_match = action_pat.search(s_cleaned)
+                        char_candidates = extract_character_candidates(s, target_char, known_chars)
+
+                        # Case 1: Target character explicitly present in current sentence
+                        if target_char in char_candidates:
+                            active_candidates = char_candidates
+                            active_sentence_idx = idx
+                            if action_match:
+                                for kw_pat in kw_pat_list:
+                                    m = kw_pat.search(s_cleaned)
+                                    if m and not is_negated_or_authorized(s, m.start(), m.end()):
+                                        quote = extract_verbatim_quote(s, m.start(), m.end())
+                                        findings.append({
+                                            "rule_id": rule.get("id"),
+                                            "rule_text": rule_text,
+                                            "source": rule.get("source"),
+                                            "status": "VIOLATION",
+                                            "method": "heuristic_character_boundary",
+                                            "confidence": "high",
+                                            "verbatim_quote": quote,
+                                            "explanation": f"Draft shows character '{target_char}' knowing/discovering forbidden topic: '{m.group(0)}'.",
+                                        })
+                                        break
+                            continue
+
+                        # Case 2: Co-reference via pronoun in consecutive sentence
+                        if active_candidates and idx == active_sentence_idx + 1 and action_match:
+                            pronoun_match = VIETNAMESE_PRONOUNS_PATTERN.search(s_cleaned)
+                            if pronoun_match and pronoun_match.start() < action_match.start():
+                                words_before = re.findall(r"\b\w+\b", s_cleaned[:pronoun_match.start()])
+                                other_names_before = [
+                                    w for w in words_before
+                                    if w[0].isupper()
+                                    and w.lower() not in VIETNAMESE_PRONOUNS_SET
+                                    and w.lower() not in VIETNAMESE_NON_CHARACTER_WORDS
+                                ]
+                                if not other_names_before:
+                                    # Single antecedent = target_char -> VIOLATION
+                                    if len(active_candidates) == 1 and active_candidates[0].lower() == target_char.lower():
+                                        for kw_pat in kw_pat_list:
+                                            m = kw_pat.search(s_cleaned)
+                                            if m and not is_negated_or_authorized(s, m.start(), m.end()):
+                                                quote = extract_verbatim_quote(s, m.start(), m.end())
+                                                findings.append({
+                                                    "rule_id": rule.get("id"),
+                                                    "rule_text": rule_text,
+                                                    "source": rule.get("source"),
+                                                    "status": "VIOLATION",
+                                                    "method": "heuristic_character_coreference",
+                                                    "confidence": "high",
+                                                    "verbatim_quote": quote,
+                                                    "explanation": f"Draft shows character '{target_char}' (referenced via pronoun '{pronoun_match.group(0)}') knowing/discovering forbidden topic: '{m.group(0)}'.",
+                                                })
+                                                break
+                                        active_candidates = [target_char]
+                                        active_sentence_idx = idx
+                                        continue
+
+                                    # Multiple antecedents including target_char -> AMBIGUITY (NEEDS_AUTHOR_DECISION)
+                                    elif len(active_candidates) > 1 and any(c.lower() == target_char.lower() for c in active_candidates):
+                                        other_chars = [c for c in active_candidates if c.lower() != target_char.lower()]
+                                        for kw_pat in kw_pat_list:
+                                            m = kw_pat.search(s_cleaned)
+                                            if m and not is_negated_or_authorized(s, m.start(), m.end()):
+                                                quote = extract_verbatim_quote(s, m.start(), m.end())
+                                                findings.append({
+                                                    "rule_id": rule.get("id"),
+                                                    "rule_text": rule_text,
+                                                    "source": rule.get("source"),
+                                                    "status": "NEEDS_AUTHOR_DECISION",
+                                                    "method": "heuristic_character_coreference_ambiguity",
+                                                    "confidence": "ambiguous",
+                                                    "verbatim_quote": quote,
+                                                    "explanation": f"Đại từ '{pronoun_match.group(0)}' có tiền đề nhập nhằng giữa '{target_char}' (bị cấm) và '{', '.join(other_chars)}'. Cần tác giả xác nhận danh tính để đảm bảo ranh giới nhận thức.",
+                                                })
+                                                break
+                                        active_candidates = active_candidates
+                                        active_sentence_idx = idx
+                                        continue
+
+                        if char_candidates:
+                            active_candidates = char_candidates
+                            active_sentence_idx = idx
+                        else:
+                            active_candidates = []
+                            active_sentence_idx = -1
+                continue
+
             # Standard keyword / phrase matching with false-positive noun filters (Test A & C)
             for kw in keywords:
                 if len(kw) < 4:
@@ -542,7 +733,9 @@ def verify_chapter_compliance(
 
     # Determine overall status
     has_violations = any(f["status"] == "VIOLATION" for f in findings)
-    has_needs_decision = any(f["status"] == "NEEDS_AUTHOR_DECISION" for f in findings)
+    has_needs_decision = any(
+        f["status"] in ("NEEDS_AUTHOR_DECISION", "AMBIGUOUS_EPISTEMIC_VIOLATION") for f in findings
+    )
 
     if has_violations:
         status = "VIOLATION"

@@ -516,6 +516,63 @@ class ToolFailureTests(unittest.TestCase):
         self.assertEqual(unnormalized["status"], "fail", unnormalized)
         self.assertEqual(unnormalized["blocking_findings"][0]["type"], "PUNCTUATION_NOT_NORMALIZED")
 
+    @unittest.skipUnless(shutil.which("node"), "node absent")
+    def test_check_degeneration_multilingual_terminal_punctuation(self) -> None:
+        """Kiểm tra regex kết thúc câu/đoạn của check-degeneration.js trên CJK và tiếng Việt (Task 3)."""
+        degen_script = Path(__file__).resolve().parent.parent / "skills/story-long-write/scripts/check-degeneration.js"
+        self.assertTrue(degen_script.is_file())
+
+        valid_endings = [
+            ("zh_period", "他推门进去，屋里没人。"),
+            ("zh_exclamation", "真是不可思议！"),
+            ("zh_question", "难道这就是真相吗？"),
+            ("zh_quote", "他轻声说：“我知道了。”"),
+            ("ja_bracket", "「すべて理解しました」"),
+            ("ja_white_bracket", "『完結』"),
+            ("zh_parenthesis", "（全剧终）"),
+            ("ellipsis", "故事还在继续……"),
+            ("vi_period", "An cẩn thận kiểm tra chiếc hộp thiếc."),
+            ("vi_exclamation", "Tuyệt đối không được mở ra!"),
+            ("vi_question", "Phong có nhận ra điều gì bất thường không?"),
+            ("vi_double_quote", 'An thì thầm: "Tôi hiểu rồi."'),
+            ("vi_curly_quote", "An thì thầm: “Tôi hiểu rồi.”"),
+            ("vi_curly_single_quote", "An thì thầm: ‘Tôi hiểu rồi.’"),
+            ("vi_ascii_single_quote", "An thì thầm: 'Tôi hiểu rồi.'"),
+            ("vi_parenthesis", "(Hết chương một)"),
+        ]
+
+        with tempfile.TemporaryDirectory(prefix="storyctl-degen-punct-") as directory:
+            test_file = Path(directory) / "check_degen_test.md"
+            for label, sample in valid_endings:
+                test_file.write_text(f"## Chương 1\n{sample}\n", encoding="utf-8")
+                res = subprocess.run(
+                    ["node", str(degen_script), "--json", str(test_file)],
+                    capture_output=True,
+                    encoding="utf-8",
+                )
+                self.assertEqual(
+                    res.returncode, 0,
+                    f"Punctuation ending '{label}' ({sample[-2:]}) must PASS, got exit {res.returncode}: {res.stdout}"
+                )
+
+            # Incomplete / truncated sentences must FAIL with type 'truncated'
+            invalid_endings = [
+                ("zh_truncated", "他转过身去，手还在"),
+                ("vi_truncated", "An mở tủ quần áo ra và nhìn"),
+            ]
+            for label, sample in invalid_endings:
+                test_file.write_text(f"## Chương 1\n{sample}\n", encoding="utf-8")
+                res = subprocess.run(
+                    ["node", str(degen_script), "--json", str(test_file)],
+                    capture_output=True,
+                    encoding="utf-8",
+                )
+                self.assertEqual(
+                    res.returncode, 1,
+                    f"Truncated sample '{label}' must fail with exit 1"
+                )
+                self.assertIn('"truncated"', res.stdout)
+
 
 class OutlineRangeOverrideTests(unittest.TestCase):
     def _project(self, directory: str, range_line: str) -> Path:

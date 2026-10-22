@@ -17,7 +17,7 @@ class PipelineTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix='writer-pipeline-')
         self.addCleanup(self.tmp.cleanup)
-        self.book = Path(self.tmp.name) / '雾港 来信'
+        self.book = Path(self.tmp.name).resolve() / '雾港 来信'
         self.outline = self.put('大纲/细纲_第001章.md', '### 第 1 章：一封信\n- 单元ID/位置：L1-01；第1拍\n- 目标情绪：犹疑→决定替朋友保管信件\n')
         self.volume = self.put('大纲/卷纲_第一卷.md', self.volume_text())
         headings = ['当前位置', '长期约束', '核心角色状态', '活跃伏笔', '近三章速记', '下一章承诺', '连贯性风险']
@@ -544,8 +544,8 @@ class PipelineTests(unittest.TestCase):
         result = self.build()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('custom_style=true', result.stdout)
-        self.assertIn(str(style), result.stdout)
-        self.assertNotIn(str(digest), result.stdout)
+        self.assertIn(str(style.resolve()), result.stdout)
+        self.assertNotIn(str(digest.resolve()), result.stdout)
         self.assertNotIn('旧规则', result.stdout)
         for stub in ['', '# 文风', '# 文风\n[待补充]', '# 文风\n<!-- 作者稍后填写 -->']:
             style.write_text(stub, encoding='utf-8')

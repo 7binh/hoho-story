@@ -46,7 +46,7 @@ def assert_manifest_error(
     write_manifest(manifest, groups)
     result = run(root, manifest, "check")
     assert result.returncode == 2, result.stderr + result.stdout
-    assert expected in result.stderr, result.stderr + result.stdout
+    assert expected in result.stderr.replace("\\", "/"), result.stderr + result.stdout
 
 
 with tempfile.TemporaryDirectory(prefix="shared-assets-") as tmp:
@@ -74,12 +74,15 @@ with tempfile.TemporaryDirectory(prefix="shared-assets-") as tmp:
     clean = run(root, manifest, "check")
     assert clean.returncode == 0, clean.stderr + clean.stdout
 
-    target.chmod(0o644)
-    mode_drift = run(root, manifest, "check")
-    assert mode_drift.returncode == 1, mode_drift.stderr + mode_drift.stdout
-    assert "mode" in mode_drift.stdout
-    assert run(root, manifest, "sync").returncode == 0
-    assert target.stat().st_mode & 0o111, "sync must repair executable mode drift"
+    if os.name != "nt":
+        target.chmod(0o644)
+        mode_drift = run(root, manifest, "check")
+        assert mode_drift.returncode == 1, mode_drift.stderr + mode_drift.stdout
+        assert "mode" in mode_drift.stdout
+        assert run(root, manifest, "sync").returncode == 0
+        assert target.stat().st_mode & 0o111, "sync must repair executable mode drift"
+    else:
+        print("SKIP: Windows NTFS does not support POSIX executable mode drift")
 
     target.write_text("drift\n", encoding="utf-8")
     drift = run(root, manifest, "check")
@@ -90,7 +93,8 @@ with tempfile.TemporaryDirectory(prefix="shared-assets-") as tmp:
     synced = run(root, manifest, "sync")
     assert synced.returncode == 0, synced.stderr + synced.stdout
     assert target.read_bytes() == source.read_bytes()
-    assert target.stat().st_mode & 0o111, "sync must preserve executable mode"
+    if os.name != "nt":
+        assert target.stat().st_mode & 0o111, "sync must preserve executable mode"
     assert run(root, manifest, "check").returncode == 0
 
     target.unlink()
@@ -224,7 +228,7 @@ with tempfile.TemporaryDirectory(prefix="shared-assets-") as tmp:
     assert missing_source_sync.returncode == 1, (
         missing_source_sync.stderr + missing_source_sync.stdout
     )
-    assert "MISSING SOURCE [tool] src/tool.js" in missing_source_sync.stdout
+    assert "MISSING SOURCE [tool] src/tool.js" in missing_source_sync.stdout.replace("\\", "/")
     assert "FAIL: synchronization incomplete" in missing_source_sync.stdout
     assert "OK:" not in missing_source_sync.stdout
 
@@ -278,28 +282,31 @@ with tempfile.TemporaryDirectory(prefix="shared-assets-reference-runtime-") as t
     assert allowed.returncode == 0, allowed.stderr + allowed.stdout
 
 
-with tempfile.TemporaryDirectory(prefix="python-store-stub-") as tmp:
-    stub_dir = Path(tmp)
-    python3_stub = stub_dir / "python3"
-    python3_stub.write_text("#!/bin/sh\nexit 49\n", encoding="utf-8")
-    python3_stub.chmod(0o755)
-    python_fallback = stub_dir / "python"
-    python_fallback.write_text(
-        "#!/bin/sh\nexec {} \"$@\"\n".format(shlex.quote(sys.executable)),
-        encoding="utf-8",
-    )
-    python_fallback.chmod(0o755)
-    environment = os.environ.copy()
-    environment["PATH"] = str(stub_dir) + os.pathsep + environment.get("PATH", "")
-    wrapper = subprocess.run(
-        ["bash", str(REPO_ROOT / "scripts" / "check-shared-files.sh")],
-        cwd=REPO_ROOT,
-        env=environment,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    assert wrapper.returncode == 0, wrapper.stderr + wrapper.stdout
-    assert "Shared File Governance Check" in wrapper.stdout
+if os.name != "nt":
+    with tempfile.TemporaryDirectory(prefix="python-store-stub-") as tmp:
+        stub_dir = Path(tmp)
+        python3_stub = stub_dir / "python3"
+        python3_stub.write_text("#!/bin/sh\nexit 49\n", encoding="utf-8")
+        python3_stub.chmod(0o755)
+        python_fallback = stub_dir / "python"
+        python_fallback.write_text(
+            "#!/bin/sh\nexec {} \"$@\"\n".format(shlex.quote(sys.executable)),
+            encoding="utf-8",
+        )
+        python_fallback.chmod(0o755)
+        environment = os.environ.copy()
+        environment["PATH"] = str(stub_dir) + os.pathsep + environment.get("PATH", "")
+        wrapper = subprocess.run(
+            ["bash", str(REPO_ROOT / "scripts" / "check-shared-files.sh")],
+            cwd=REPO_ROOT,
+            env=environment,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert wrapper.returncode == 0, wrapper.stderr + wrapper.stdout
+        assert "Shared File Governance Check" in wrapper.stdout
+else:
+    print("SKIP: bash wrapper test skipped on Windows (requires POSIX environment)")
 
 print("OK: shared asset manifest detects drift and syncs atomically")

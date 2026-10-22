@@ -83,6 +83,7 @@ INVALID_FILE_CHARS = re.compile(r"[<>:\"/\\|?*\x00-\x1f]")
 FORESHADOW_ID = re.compile(r"^F\d{3,}$")
 SNAPSHOT_TEXT_FIELDS = ("identity", "location", "goal", "state")
 SNAPSHOT_LIST_FIELDS = ("abilities_resources", "relationships", "knowledge", "open_threads")
+SNAPSHOT_OPTIONAL_LIST_FIELDS = ("beliefs", "unaware")
 EVENT_ID = re.compile(r"^E\d{3,}$")
 WINDOWS_RESERVED_NAMES = {
     "CON",
@@ -373,14 +374,15 @@ def as_text_list(value: object) -> object:
 
 def normalize_snapshot(value: object, label: str) -> dict[str, Any]:
     snapshot = as_mapping(value, label)
+    all_list_fields = SNAPSHOT_LIST_FIELDS + SNAPSHOT_OPTIONAL_LIST_FIELDS
     snapshot = {key: joined_text(item) if key in SNAPSHOT_TEXT_FIELDS else as_text_list(item)
-                if key in SNAPSHOT_LIST_FIELDS else item for key, item in snapshot.items()}
+                if key in all_list_fields else item for key, item in snapshot.items()}
     require_known_keys(
         snapshot,
-        {"identity", "location", "goal", "state", "abilities_resources", "relationships", "knowledge", "open_threads"},
+        {"identity", "location", "goal", "state", "abilities_resources", "relationships", "knowledge", "open_threads", "beliefs", "unaware"},
         label,
     )
-    return {
+    res = {
         "identity": clean_text(snapshot.get("identity"), f"{label}.identity", max_bytes=240),
         "location": clean_text(snapshot.get("location"), f"{label}.location", max_bytes=240),
         "goal": clean_text(snapshot.get("goal"), f"{label}.goal", max_bytes=300),
@@ -392,6 +394,11 @@ def normalize_snapshot(value: object, label: str) -> dict[str, Any]:
         "knowledge": clean_string_list(snapshot.get("knowledge", []), f"{label}.knowledge"),
         "open_threads": clean_string_list(snapshot.get("open_threads", []), f"{label}.open_threads"),
     }
+    if snapshot.get("beliefs") is not None:
+        res["beliefs"] = clean_string_list(snapshot.get("beliefs", []), f"{label}.beliefs")
+    if snapshot.get("unaware") is not None:
+        res["unaware"] = clean_string_list(snapshot.get("unaware", []), f"{label}.unaware")
+    return res
 
 
 def normalize_snapshots(value: object, label: str = "character_snapshots") -> dict[str, dict[str, Any]]:
@@ -426,6 +433,10 @@ def render_snapshot(name: str, snapshot: dict[str, Any], through_chapter: int, r
     lines.extend(section("关键关系", snapshot["relationships"]))
     lines.extend(section("已知信息", snapshot["knowledge"]))
     lines.extend(section("未结事项", snapshot["open_threads"]))
+    if snapshot.get("beliefs"):
+        lines.extend(section("主观认知与疑虑", snapshot["beliefs"]))
+    if snapshot.get("unaware"):
+        lines.extend(section("未知与信息盲区", snapshot["unaware"]))
     payload = "\n".join(lines).rstrip() + "\n"
     require(
         byte_size(payload) <= SNAPSHOT_MAX_BYTES,
@@ -746,6 +757,89 @@ def render_context(state: dict[str, Any]) -> str:
     return payload
 
 
+def normalize_item_change(value: object, label: str) -> dict[str, Any]:
+    row = as_mapping(value, label)
+    require_known_keys(row, {"action", "name", "holder", "location", "status", "description", "aliases"}, label)
+    action = normalize_action(row.get("action", "upsert"), f"{label}.action", allow_delete=True)
+    name = clean_text(row.get("name"), f"{label}.name", max_bytes=120)
+    if action == "delete":
+        return {"action": action, "name": name}
+    holder = clean_text(row.get("holder"), f"{label}.holder", allow_empty=True, max_bytes=120) if row.get("holder") else None
+    location = clean_text(row.get("location", "không rõ"), f"{label}.location", allow_empty=True, max_bytes=240)
+    status = clean_text(row.get("status", "nguyên vẹn"), f"{label}.status", allow_empty=True, max_bytes=120)
+    description = clean_text(row.get("description", ""), f"{label}.description", allow_empty=True, max_bytes=360)
+    aliases = clean_string_list(row.get("aliases", []), f"{label}.aliases")
+    return {
+        "action": action,
+        "name": name,
+        "holder": holder,
+        "location": location,
+        "status": status,
+        "description": description,
+        "aliases": aliases,
+    }
+
+
+def normalize_items_state(value: object, last_chapter: int) -> dict[str, dict[str, Any]]:
+    items = as_mapping(value, "tracking state.items")
+    normalized: dict[str, dict[str, Any]] = {}
+    for raw_name, raw_item in items.items():
+        name = clean_text(raw_name, "tracking state.items key", max_bytes=120)
+        item = as_mapping(raw_item, f"tracking state.items.{name}")
+        normalized[name] = {
+            "name": name,
+            "holder": clean_text(item.get("holder"), f"items.{name}.holder", allow_empty=True, max_bytes=120) if item.get("holder") else None,
+            "location": clean_text(item.get("location", "không rõ"), f"items.{name}.location", allow_empty=True, max_bytes=240),
+            "status": clean_text(item.get("status", "nguyên vẹn"), f"items.{name}.status", allow_empty=True, max_bytes=120),
+            "origin_chapter": as_int(item.get("origin_chapter", 1), f"items.{name}.origin_chapter", minimum=1),
+            "updated_chapter": as_int(item.get("updated_chapter", 1), f"items.{name}.updated_chapter", minimum=1),
+            "description": clean_text(item.get("description", ""), f"items.{name}.description", allow_empty=True, max_bytes=360),
+            "aliases": clean_string_list(item.get("aliases", []), f"items.{name}.aliases"),
+        }
+    return normalized
+
+
+def normalize_commitment_change(value: object, label: str) -> dict[str, Any]:
+    row = as_mapping(value, label)
+    require_known_keys(row, {"action", "id", "commitment", "deadline_chapter", "status", "resolution"}, label)
+    action = clean_text(row.get("action", "add"), f"{label}.action")
+    require(action in {"add", "fulfill", "cancel", "upsert"}, f"{label}.action must be add, fulfill, cancel, or upsert")
+    cid = clean_text(row.get("id"), f"{label}.id")
+    commitment = clean_text(row.get("commitment", ""), f"{label}.commitment", allow_empty=True)
+    deadline = as_int(row.get("deadline_chapter"), f"{label}.deadline_chapter", minimum=1) if row.get("deadline_chapter") else None
+    status = clean_text(row.get("status", "pending" if action in ("add", "upsert") else "fulfilled"), f"{label}.status")
+    resolution = clean_text(row.get("resolution", ""), f"{label}.resolution", allow_empty=True)
+    return {
+        "action": action,
+        "id": cid,
+        "commitment": commitment,
+        "deadline_chapter": deadline,
+        "status": status,
+        "resolution": resolution,
+    }
+
+
+def render_items(items: dict[str, dict[str, Any]], revision: int) -> str:
+    lines = [
+        "# 关键道具与实体状态",
+        "",
+        f"> 状态修订：{revision}。记录全书重要道具、信物、证据的持有人与流转状态。",
+        "",
+        "| 道具名 | 持有人 | 当前位置 | 状态 | 起始章 | 最近更新章 | 描述 |",
+        "|---|---|---|---|---:|---:|---|",
+    ]
+    for name in sorted(items):
+        item = items[name]
+        holder = item.get("holder") or "—"
+        location = item.get("location") or "—"
+        status = item.get("status") or "—"
+        origin = f"第{item.get('origin_chapter', 1)}章"
+        updated = f"第{item.get('updated_chapter', 1)}章"
+        desc = item.get("description") or "—"
+        lines.append(f"| {name} | {holder} | {location} | {status} | {origin} | {updated} | {desc} |")
+    return "\n".join(lines) + "\n"
+
+
 def normalize_delta(
     value: object,
     *,
@@ -758,7 +852,8 @@ def normalize_delta(
         delta,
         {
             "result", "character_changes", "foreshadow_changes", "timeline_events", "constraints",
-            "next_chapter_commitments", "retired_context_items", "retired_characters",
+            "next_chapter_commitments", "retired_context_items", "retired_characters", "item_changes",
+            "commitment_changes",
         },
         "delta",
     )
@@ -811,7 +906,15 @@ def normalize_delta(
         set(snapshots).issubset({item["name"] for item in character_changes}),
         "character_snapshots must contain exactly the core characters changed by this transaction",
     )
-    return {
+    item_changes = [
+        normalize_item_change(raw, f"delta.item_changes[{index}]")
+        for index, raw in enumerate(as_list(delta.get("item_changes", []), "delta.item_changes"))
+    ]
+    commitment_changes = [
+        normalize_commitment_change(raw, f"delta.commitment_changes[{index}]")
+        for index, raw in enumerate(as_list(delta.get("commitment_changes", []), "delta.commitment_changes"))
+    ]
+    res_delta = {
         "result": clean_text(delta.get("result"), "delta.result", max_bytes=480),
         "character_changes": character_changes,
         "foreshadow_changes": foreshadow_changes,
@@ -825,6 +928,11 @@ def normalize_delta(
         ),
         "retired_characters": retired_characters,
     }
+    if item_changes:
+        res_delta["item_changes"] = item_changes
+    if commitment_changes:
+        res_delta["commitment_changes"] = commitment_changes
+    return res_delta
 
 
 def render_commitments(commitments: list[str]) -> list[str]:
@@ -872,6 +980,16 @@ def render_delta(chapter: int, title: str, delta: dict[str, Any], core_names: se
     lines.extend(f"- {item}" for item in delta["constraints"])
     if not delta["constraints"]:
         lines.append("- 无")
+    if delta.get("item_changes"):
+        lines.extend(["", "## 道具变化"])
+        for item in delta["item_changes"]:
+            if item["action"] == "delete":
+                lines.append(f"- {item['name']}｜删除当前登记")
+            else:
+                h = item.get("holder") or "无主"
+                loc = item.get("location") or "未知"
+                st = item.get("status") or "正常"
+                lines.append(f"- {item['name']}｜{h}｜{loc}｜{st}")
     retired = delta.get("retired_context_items", []) + [
         f"角色状态：{name}" for name in delta.get("retired_characters", [])
     ]
@@ -910,7 +1028,7 @@ def normalize_state(document: object) -> dict[str, Any]:
         {
             "schema_version", "book_title", "last_committed_chapter", "imported_through_chapter",
             "state_revision", "context", "characters", "foreshadow", "timeline",
-            "wordcount_records",
+            "wordcount_records", "items", "unfulfilled_commitments",
         },
         "tracking state",
     )
@@ -937,7 +1055,9 @@ def normalize_state(document: object) -> dict[str, Any]:
         require(not timeline, "a chapter-0 project cannot have established timeline facts")
     state_revision = as_int(root.get("state_revision"), "tracking state.state_revision")
     wordcount_records = normalize_wordcount_records(root.get("wordcount_records", {}), last_chapter)
-    return {
+    items = normalize_items_state(root.get("items", {}), last_chapter) if "items" in root else {}
+    unfulfilled = as_list(root.get("unfulfilled_commitments", []), "tracking state.unfulfilled_commitments") if "unfulfilled_commitments" in root else []
+    res_state = {
         "schema_version": TRACKING_SCHEMA_VERSION,
         "book_title": clean_text(root.get("book_title"), "tracking state.book_title", max_bytes=240),
         "last_committed_chapter": last_chapter,
@@ -949,6 +1069,11 @@ def normalize_state(document: object) -> dict[str, Any]:
         "timeline": timeline,
         "wordcount_records": wordcount_records,
     }
+    if "items" in root or items:
+        res_state["items"] = items
+    if "unfulfilled_commitments" in root or unfulfilled:
+        res_state["unfulfilled_commitments"] = unfulfilled
+    return res_state
 
 
 def load_state(project: Path) -> dict[str, Any]:
@@ -1160,6 +1285,63 @@ def merge_transaction(state: dict[str, Any], transaction: dict[str, Any]) -> dic
                 change, chapter, next_state["timeline"].get(change["id"]), keep_first_chapter=True
             )
 
+    next_items = dict(state.get("items") or {})
+    for item_change in transaction["delta"].get("item_changes", []):
+        iname = item_change["name"]
+        if item_change["action"] == "delete":
+            next_items.pop(iname, None)
+        else:
+            prev_item = next_items.get(iname, {})
+            origin_ch = prev_item.get("origin_chapter", chapter)
+            aliases = item_change.get("aliases") or prev_item.get("aliases", [])
+            next_items[iname] = {
+                "name": iname,
+                "holder": item_change.get("holder"),
+                "location": item_change.get("location", "không rõ"),
+                "status": item_change.get("status", "nguyên vẹn"),
+                "origin_chapter": origin_ch,
+                "updated_chapter": chapter,
+                "description": item_change.get("description", prev_item.get("description", "")),
+                "aliases": aliases,
+            }
+    if next_items:
+        next_state["items"] = next_items
+
+    next_commitments = [dict(c) for c in (state.get("unfulfilled_commitments") or [])]
+    for c_change in transaction["delta"].get("commitment_changes", []):
+        cid = c_change["id"]
+        action = c_change["action"]
+        existing = next((c for c in next_commitments if c.get("id") == cid), None)
+        if action in ("add", "upsert"):
+            if existing:
+                if c_change.get("commitment"):
+                    existing["commitment"] = c_change["commitment"]
+                if c_change.get("deadline_chapter"):
+                    existing["deadline_chapter"] = c_change["deadline_chapter"]
+                existing["status"] = c_change.get("status", "pending")
+                existing["updated_chapter"] = chapter
+            else:
+                next_commitments.append({
+                    "id": cid,
+                    "commitment": c_change.get("commitment", ""),
+                    "origin_chapter": chapter,
+                    "deadline_chapter": c_change.get("deadline_chapter"),
+                    "status": c_change.get("status", "pending"),
+                    "updated_chapter": chapter,
+                })
+        elif action == "fulfill":
+            if existing:
+                existing["status"] = "fulfilled"
+                existing["resolved_chapter"] = chapter
+                existing["resolution"] = c_change.get("resolution", "Đã hoàn thành")
+        elif action == "cancel":
+            if existing:
+                existing["status"] = "cancelled"
+                existing["resolved_chapter"] = chapter
+                existing["resolution"] = c_change.get("resolution", "Đã hủy bỏ/không còn áp dụng")
+    if next_commitments:
+        next_state["unfulfilled_commitments"] = next_commitments
+
     recent_by_chapter = {item["chapter"]: item for item in state["context"]["recent_chapters"]}
     if chapter in recent_by_chapter or transaction["mode"] == "append":
         recent_by_chapter[chapter] = {"chapter": chapter, "summary": transaction["delta"]["result"]}
@@ -1187,6 +1369,8 @@ def render_views(state: dict[str, Any]) -> dict[str, str]:
     author, reader = render_timeline_views(state["timeline"], revision)
     views["时间线/作者真相.md"] = author
     views["时间线/读者已知.md"] = reader
+    if state.get("items"):
+        views["道具状态.md"] = render_items(state["items"], revision)
     for name, snapshot in state["characters"].items():
         views[f"角色状态/{name}.md"] = render_snapshot(
             name, snapshot, state["last_committed_chapter"], revision
@@ -1351,7 +1535,8 @@ DRAFT_LIMITS = {
 
 
 RECORD_SECTIONS = {"角色变化": "character_changes", "伏笔变化": "foreshadow_changes",
-                   "时间与揭示": "timeline_events", "连贯性约束": "constraints", "本章退役登记": "retired"}
+                   "时间与揭示": "timeline_events", "连贯性约束": "constraints", "本章退役登记": "retired",
+                   "道具变化": "item_changes"}
 
 
 def parse_chapter_record(path: Path) -> dict[str, Any] | None:

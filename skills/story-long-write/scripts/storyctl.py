@@ -558,6 +558,89 @@ def _require_acceptable_length(
             )
 
 
+NEGATION_PREFIX = re.compile(
+    r"\b(?:không|chưa|chẳng|chớ|đâu\s+có|từ\s+chối|bác\s+bỏ|ngăn\s+chặn|không\s+thể|tuyệt\s+đối\s+không|refused\s+to|did\s+not|not)\s+(?:\w+\s+){0,2}$",
+    re.IGNORECASE,
+)
+
+HYPOTHETICAL_PREFIX = re.compile(
+    r"\b(?:trong\s+mơ|mơ\s+thấy|giả\s+sử|nếu\s+như|nếu\s+mà|tưởng\s+tượng|ngỡ\s+rằng|cứ\s+ngỡ|nghĩ\s+rằng|tưởng\s+như|in\s+a\s+dream|hypothetically|if)\b",
+    re.IGNORECASE,
+)
+
+CONTRADICTORY_PAIRS = [
+    (
+        "Ký kết vs Từ chối ký (Signing vs Refusal)",
+        re.compile(r"\b(?:đã\s+ký|ký\s+kết|ký\s+tên|chấp\s+thuận|đồng\s+ý|signed|agreed)\b", re.IGNORECASE),
+        re.compile(r"\b(?:từ\s+chối\s+ký|không\s+ký|kiên\s+quyết\s+từ\s+chối|không\s+đồng\s+ý|bác\s+bỏ|refused\s+to\s+sign|declined)\b", re.IGNORECASE),
+    ),
+    (
+        "Tử vong vs Sống sót (Death vs Survival)",
+        re.compile(r"\b(?:đã\s+chết|tử\s+vong|bị\s+giết|hy\s+sinh|thiệt\s+mạng|died|killed)\b", re.IGNORECASE),
+        re.compile(r"\b(?:sống\s+sót|thoát\s+chết|bảo\s+toàn\s+tính\s+mạng|thoát\s+hiểm|survived)\b", re.IGNORECASE),
+    ),
+    (
+        "Chiến thắng vs Thất bại (Victory vs Defeat)",
+        re.compile(r"\b(?:chiến\s+thắng|đánh\s+bại|thắng\s+lợi|won|defeated\b)", re.IGNORECASE),
+        re.compile(r"\b(?:thất\s+bại|bị\s+đánh\s+bại|thua\s+cuộc|lost|was\s+defeated)\b", re.IGNORECASE),
+    ),
+    (
+        "Tiêu hủy vs Bảo tồn (Destruction vs Preservation)",
+        re.compile(r"\b(?:đã\s+đốt|thiêu\s+hủy|phá\s+hủy|burned|destroyed)\b", re.IGNORECASE),
+        re.compile(r"\b(?:không\s+đốt|giấu\s+kỹ|bảo\s+tồn|nguyên\s+vẹn|preserved|did\s+not\s+burn)\b", re.IGNORECASE),
+    ),
+]
+
+
+def _extract_factual_matches(text: str, pattern: re.Pattern) -> list[tuple[str, str, bool]]:
+    sentences = re.split(r"[\r\n.!?；。！？]+", text)
+    matches = []
+    for s in sentences:
+        s_clean = s.strip()
+        if not s_clean:
+            continue
+        for m in pattern.finditer(s_clean):
+            start = m.start()
+            prefix = s_clean[:start]
+            if NEGATION_PREFIX.search(prefix):
+                continue
+            is_hypo = bool(HYPOTHETICAL_PREFIX.search(prefix))
+            matches.append((m.group(0), s_clean, is_hypo))
+    return matches
+
+
+def detect_summary_drift(summary: str, body_text: str) -> str | None:
+    if not summary or not body_text:
+        return None
+    for name, pos_pattern, neg_pattern in CONTRADICTORY_PAIRS:
+        sum_pos = [m[0] for m in _extract_factual_matches(summary, pos_pattern)]
+        sum_neg = [m[0] for m in _extract_factual_matches(summary, neg_pattern)]
+
+        body_pos = _extract_factual_matches(body_text, pos_pattern)
+        body_neg = _extract_factual_matches(body_text, neg_pattern)
+
+        body_pos_factual = [m for m in body_pos if not m[2]]
+        body_neg_factual = [m for m in body_neg if not m[2]]
+
+        # Summary asserts POSITIVE (e.g. đã ký kết)
+        if sum_pos and not sum_neg:
+            if body_neg_factual and not body_pos_factual:
+                return (
+                    f"{name}: Tóm tắt khẳng định \"{sum_pos[0]}\" nhưng văn bản chính văn khẳng định \"{body_neg_factual[0][0]}\" "
+                    f"(trích chính văn: \"{body_neg_factual[0][1]}\")"
+                )
+
+        # Summary asserts NEGATIVE (e.g. từ chối ký)
+        if sum_neg and not sum_pos:
+            if body_pos_factual and not body_neg_factual:
+                return (
+                    f"{name}: Tóm tắt phủ định \"{sum_neg[0]}\" nhưng văn bản chính văn khẳng định \"{body_pos_factual[0][0]}\" "
+                    f"(trích chính văn: \"{body_pos_factual[0][1]}\")"
+                )
+
+    return None
+
+
 def chapter_commit(
     project: Path, chapter: int, input_path: Path, *, accept_current_length: bool,
     author_range: Any = None, force: bool = False, require_compliance: bool = False,
@@ -597,6 +680,18 @@ def chapter_commit(
     document = _read_json_object(input_path, "tracking transaction")
     require(document.get("chapter") == chapter, "tracking transaction chapter does not match command")
     require("wordcount" not in document, "tracking transaction must not provide wordcount")
+    delta_result = document.get("delta", {}).get("result", "")
+    if delta_result:
+        try:
+            body_text = body_path.read_text(encoding="utf-8")
+            drift = detect_summary_drift(delta_result, body_text)
+            if drift:
+                raise ChapterRefused(
+                    "SUMMARY_DRIFT_DETECTED",
+                    f"Tóm tắt kết quả (delta.result) mâu thuẫn trực tiếp với chính văn chương: {drift}",
+                )
+        except OSError:
+            pass
     document["wordcount"] = build_project_wordcount_record(
         project, chapter, resolution=resolution, author_range=author_range,
     )

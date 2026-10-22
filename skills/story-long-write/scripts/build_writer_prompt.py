@@ -70,7 +70,8 @@ def chapter_work_dir(project: Path, chapter: int) -> Path:
 
 def read_text(path: Path):
     try:
-        return io.open(path, encoding="utf-8").read().lstrip("﻿")
+        with io.open(path, encoding="utf-8") as f:
+            return f.read().lstrip("﻿")
     except (OSError, UnicodeError):
         return None
 
@@ -608,6 +609,185 @@ def detect_canon_conflicts(request: str, context_text: str):
     return None
 
 
+def detect_canon_outline_conflicts(outline_text: str, state: dict[str, Any] | None) -> str | None:
+    if not outline_text or not state:
+        return None
+
+    timeline = state.get("timeline") or {}
+    items = state.get("items") or {}
+
+    # Check contradictions between outline and timeline facts
+    for event_id, event in timeline.items():
+        fact = event.get("objective_fact", "")
+        for cname, pos_p, neg_p in [
+            (
+                "Tiêu hủy vs Bảo tồn",
+                re.compile(r"\b(?:đã\s+bị\s+đốt|đã\s+đốt|thiêu\s+hủy|bị\s+tiêu\s+hủy)\b", re.IGNORECASE),
+                re.compile(r"\b(?:không\s+đốt|giấu\s+kỹ|bảo\s+tồn|nguyên\s+vẹn|chưa\s+đốt)\b", re.IGNORECASE),
+            ),
+            (
+                "Tử vong vs Còn sống",
+                re.compile(r"\b(?:đã\s+chết|tử\s+vong|bị\s+giết)\b", re.IGNORECASE),
+                re.compile(r"\b(?:còn\s+sống|sống\s+sót|thoát\s+chết)\b", re.IGNORECASE),
+            ),
+        ]:
+            if pos_p.search(outline_text) and neg_p.search(fact):
+                m_out = pos_p.search(outline_text).group(0)
+                m_fact = neg_p.search(fact).group(0)
+                return (
+                    "——— 【ĐỀ CƯƠNG MÂU THUẪN CANON / CANON-OUTLINE CONFLICT】 ———\n"
+                    f"⚠️ PHÁT HIỆN ĐỀ CƯƠNG XUNG ĐỘT VỚI CANON ĐÃ XÁC LẬP ({cname}):\n"
+                    f"- Đề cương (细纲) ghi: \"{m_out}\"\n"
+                    f"- Canon đã xác lập ({event_id}): \"{fact}\"\n"
+                    "- NGUYÊN TẮC TỐI CAO: Canon lịch sử đã cam kết luôn có hiệu lực tối cao so với đề cương cũ.\n"
+                    "  Mọi chi tiết mâu thuẫn trong đề cương BỊ BÃI BỎ. Writer TUYỆT ĐỐI TUÂN THỦ canon đã xác lập."
+                )
+    return None
+
+
+def extract_rich_outline_constraints(outline_text: str) -> list[str]:
+    if not outline_text:
+        return []
+    lines = []
+    anchor = extract_field(outline_text, "复沓锚句")
+    if anchor:
+        lines.append(f"- 复沓锚句（核心台词/原话）：{anchor}")
+    lens = extract_field(outline_text, "镜头准入")
+    if lens:
+        lines.append(f"- 镜头准入（台词/动作位分配）：{lens}")
+    bound = extract_field(outline_text, "执行边界")
+    if bound:
+        lines.append(f"- 执行边界（场面硬约束）：{bound}")
+    price = extract_field(outline_text, "本章标价")
+    if price:
+        lines.append(f"- 本章标价：{price}")
+    loop = extract_field(outline_text, "闭环状态")
+    if loop:
+        lines.append(f"- 闭环状态：{loop}")
+    if lines:
+        return ["——— 细纲关键约束与场面指令 (Scene Constraints & Boundaries) ———\n" + "\n".join(lines)]
+    return []
+
+
+def retrieve_cross_chapter_continuity(project: Path, chapter: int, outline_text: str, state: dict[str, Any] | None) -> list[str]:
+    if not state:
+        return []
+    items = state.get("items") or {}
+    timeline = state.get("timeline") or {}
+    unfulfilled = state.get("unfulfilled_commitments") or []
+
+    matched_items = []
+    for iname, item in items.items():
+        aliases = item.get("aliases") or []
+        names_to_check = [iname] + aliases
+        if any(n.lower() in outline_text.lower() for n in names_to_check if n):
+            holder_str = item.get("holder") or "Không có người giữ (vô chủ)"
+            loc = item.get("location") or "không rõ"
+            st = item.get("status") or "nguyên vẹn"
+
+            # Phân biệt xác nhận thất lạc vs chưa rõ vị trí
+            if any(k in st.lower() for k in ("thất lạc", "đánh mất", "chìm", "mất tích")):
+                status_desc = f"⚠️ XÁC NHẬN THẤT LẠC ({st})"
+            elif loc.lower() in ("không rõ", "chưa rõ", "unknown", ""):
+                status_desc = f"ℹ️ CHƯA RÕ VỊ TRÍ (trạng thái: {st})"
+            else:
+                status_desc = f"vị trí: \"{loc}\", trạng thái: \"{st}\""
+
+            desc = f" ({item.get('description')})" if item.get("description") else ""
+            alias_note = f" [tên khác: {', '.join(aliases)}]" if aliases else ""
+            matched_items.append(
+                f"- 道具/实体 [{iname}]{alias_note}: người giữ: {holder_str}, {status_desc}{desc} "
+                f"[xác lập từ Chương {item.get('origin_chapter', 1)}, cập nhật gần nhất: Chương {item.get('updated_chapter', item.get('origin_chapter', 1))}]"
+            )
+
+    matched_events = []
+    for eid, event in timeline.items():
+        first_ch = event.get("first_recorded_chapter", 1)
+        fact = event.get("objective_fact", "")
+        words = [w for w in re.sub(r"[^\w\s]", " ", fact).split() if len(w) >= 3]
+        overlap = [w for w in words if w.lower() in outline_text.lower()]
+        if len(overlap) >= 2 or any(iname.lower() in fact.lower() for iname in items if iname.lower() in outline_text.lower()):
+            matched_events.append(f"- Sự kiện [{eid}] (Chương {first_ch}): {fact}")
+
+    matched_commitments = []
+    for c in unfulfilled:
+        c_status = c.get("status", "pending")
+        if c_status == "pending":
+            deadline = c.get("deadline_chapter")
+            is_overdue = deadline is not None and chapter >= deadline
+            if is_overdue:
+                tag = f"⚠️ CẢNH BÁO NỢ TÌNH TIẾT QUÁ HẠN (OVERDUE COMMITMENT, hạn chót Chương {deadline})"
+            else:
+                deadline_str = f", hạn chót Chương {deadline}" if deadline else ""
+                tag = f"ℹ️ CAM KẾT CHƯA HOÀN THÀNH (PENDING COMMITMENT{deadline_str})"
+
+            matched_commitments.append(
+                f"- {tag}: \"{c.get('commitment')}\" [xác lập từ Chương {c.get('origin_chapter', 1)}]"
+            )
+        elif c_status == "fulfilled":
+            res_ch = c.get("resolved_chapter", 0)
+            if res_ch == chapter - 1:
+                matched_commitments.append(
+                    f"- ✅ CAM KẾT ĐÃ HOÀN THÀNH (FULFILLED ở Chương {res_ch}): \"{c.get('commitment')}\" (giải quyết: {c.get('resolution', 'Đã hoàn thành')})"
+                )
+
+    if matched_items or matched_events or matched_commitments:
+        lines = ["——— 跨章连续性与关键实体 (Cross-Chapter Continuity & Entities) ———"]
+        if matched_items:
+            lines.append("【关键道具与实体 (Key Items & Artifacts)】")
+            lines.extend(matched_items)
+        if matched_events:
+            lines.append("【历史事实召回 (Historical Canon Recall)】")
+            lines.extend(matched_events)
+        if matched_commitments:
+            lines.append("【未结承诺与因果链 (Unfulfilled Obligations)】")
+            lines.extend(matched_commitments)
+        return ["\n".join(lines)]
+    return []
+
+
+def extract_character_knowledge_and_beliefs(outline_text: str, state: dict[str, Any] | None) -> list[str]:
+    if not state:
+        return []
+    characters = state.get("characters") or {}
+    lines = []
+    for cname, cdata in characters.items():
+        c_names = [cname]
+        ident = cdata.get("identity", "")
+        if ident and len(ident) <= 30:
+            c_names.append(ident)
+        if any(cn.lower() in outline_text.lower() for cn in c_names):
+            known = cdata.get("knowledge") or []
+            for k in known:
+                lines.append(f"- [ĐÃ XÁC NHẬN BIẾT] Nhân vật {cname} ĐÃ BIẾT: \"{k}\". (Có thể tự do đối thoại, hồi tưởng hoặc hành động dựa trên dữ kiện này).")
+            unaware = cdata.get("unaware") or []
+            for u in unaware:
+                lines.append(
+                    f"- ⚠️ [ĐÃ XÁC NHẬN KHÔNG BIẾT / MÙ THÔNG TIN] Nhân vật {cname} TUYỆT ĐỐI KHÔNG BIẾT: \"{u}\". "
+                    f"(CẤM VI PHẠM: Nhân vật không được phép nói, nghĩ, đoán trúng hoặc phản ứng như thể đã biết trước; "
+                    f"trừ khi tình tiết chương này có cảnh người khác trực tiếp tiết lộ trên trang giấy)."
+                )
+            beliefs = cdata.get("beliefs") or []
+            for b in beliefs:
+                lines.append(
+                    f"- ℹ️ [NHẬN THỨC CHỦ QUAN / NGHI NGỜ] Nhân vật {cname} tin rằng / nghi ngờ: \"{b}\". "
+                    f"(LƯU Ý: Đây thuần túy là góc nhìn/suy đoán chủ quan của {cname}, KHÔNG PHẢI sự thật khách quan (canon); "
+                    f"người kể chuyện tuyệt đối không biến nghi ngờ này thành chân lý hiển nhiên hoặc ép đối phương phải tự nhận tội khi chưa có chứng cứ)."
+                )
+    if lines:
+        header = (
+            "——— 角色信息边界与主观认知 (Character Knowledge Boundaries & Beliefs) ———\n"
+            "【NGUYÊN TẮC TAM PHÂN TRI THỨC (Epistemic Tri-State Guideline)】:\n"
+            "1. ĐÃ BIẾT (knowledge): Tự do sử dụng.\n"
+            "2. XÁC NHẬN KHÔNG BIẾT (unaware): Tuyệt đối không cho nhân vật biết trước / đoán mò như thần thánh.\n"
+            "3. CHƯA RÕ (unspecified - không có trong danh sách): Việc thiếu thông tin KHÔNG CÓ NGHĨA là bị cấm biết. "
+            "Nhân vật có thể tiếp thu kiến thức mới qua các kênh tự nhiên trên cảnh diễn (nghe ngóng, đọc thư, quan sát), "
+            "nhưng không được mâu thuẫn với mục cấm (unaware).\n"
+        )
+        return [header + "\n".join(lines)]
+    return []
+
+
 def query_author_memory(project: Path):
     """代主会话做写正文那一次作者记忆查询（prose_style + story_design）。
 
@@ -888,6 +1068,36 @@ def build(project: Path, chapter: int, report: list, request: str = None):
             report.append("设定修改：已确认 AUTHORIZED RETCON 意图")
         else:
             report.append("设定冲突：检测到潜在 CANON CONFLICT 警告")
+
+    # Load state object for Phase 4 continuity checks
+    state_obj = None
+    state_json_path = project / "追踪" / "_tracking-state.json"
+    if state_json_path.is_file():
+        try:
+            state_obj = json.loads(read_text(state_json_path) or "{}")
+        except Exception:
+            state_obj = None
+
+    # Canon vs Outline 冲突检测 (Test 5)
+    canon_outline_block = detect_canon_outline_conflicts(outline_text, state_obj)
+    if canon_outline_block:
+        parts.append(canon_outline_block)
+        report.append("细纲冲突：检测到 đề cương mâu thuẫn với canon lịch sử đã xác lập")
+
+    # 细纲丰富度与场面硬约束 (Test 7)
+    for rob in extract_rich_outline_constraints(outline_text):
+        parts.append(rob)
+        report.append("细纲约束：已注入复沓锚句/镜头准入/执行边界")
+
+    # 跨章连续性与实体召回 (Test 1 & Test 4)
+    for cb in retrieve_cross_chapter_continuity(project, chapter, outline_text, state_obj):
+        parts.append(cb)
+        report.append("连续性：已召回跨章关键实体与历史事实")
+
+    # 角色信息边界与主观认知 (Test 2 & Test 8)
+    for kb in extract_character_knowledge_and_beliefs(outline_text, state_obj):
+        parts.append(kb)
+        report.append("角色边界：已注入角色信息盲区与主观认知")
     parts.append(slot_recall)
     # 伏笔与卷级禁忌走「主会话筛选后写进速记」这条原设计路线（步骤 3 状态筛选），
     # 不由脚本整栏注入——筛选是判断，而整栏注入还会把伏笔栏里的作者侧真相一并下放。

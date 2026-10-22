@@ -251,7 +251,7 @@ function findTruncation(content) {
   if (body.length === 0) return [];
   const last = body[body.length - 1];
   // a finished chapter ends on terminal/closing punctuation; otherwise it was cut off.
-  if (/[。！？!?…”"』」）)】]$/.test(last.trimmed)) return [];
+  if (/[。！？!?…”"’'』」）)】.]$/.test(last.trimmed)) return [];
   return [{
     line: last.lineNo,
     column: last.trimmed.length,

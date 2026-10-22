@@ -502,6 +502,99 @@ class ComplianceGateTests(unittest.TestCase):
         proposal_file = self.book / ".story" / "work" / "第001章" / "outline_change_proposal.json"
         self.assertTrue(proposal_file.is_file())
 
+    def test_unit_character_epistemic_boundary_no_false_positive(self) -> None:
+        """Ranh giới không cho Phong biết về chiếc hộp thiếc màu xanh không tạo false-positive khi An giấu hộp."""
+        boundary = "- Ranh giới 1: Tuyệt đối không để Phong biết hoặc đoán trúng bí mật về chiếc hộp thiếc màu xanh hay sự tồn tại của lá thư trước khi có cơ sở và chứng cứ hợp lệ."
+        contract = check_compliance.build_compliance_contract(
+            self.book, 1, author_boundaries=boundary
+        )
+        check_compliance.save_compliance_contract(self.book, 1, contract)
+
+        # Valid draft: An hides the box, Phong is absent
+        body_pass = self.put(
+            "正文/第001章_Pass.md",
+            "# 第 1 章\nAn cẩn thận bọc vải dầu quanh chiếc hộp thiếc màu xanh chứa lá thư rồi giấu xuống đáy vali xám trong tủ quần áo。\n" * 10
+        )
+        report_pass = check_compliance.verify_chapter_compliance(self.book, 1, body_path=body_pass)
+        self.assertEqual(report_pass["status"], "PASS")
+
+        # Violating draft: Phong discovers the box and knows the secret
+        body_violation = self.put(
+            "正文/第001章_Violate.md",
+            "# 第 1 章\nPhong lục lọi tủ quần áo, bất ngờ nhìn thấy chiếc hộp thiếc màu xanh và biết được bí mật lá thư。\n" * 10
+        )
+        report_violation = check_compliance.verify_chapter_compliance(self.book, 1, body_path=body_violation)
+        self.assertEqual(report_violation["status"], "VIOLATION")
+
+
+    def test_unit_epistemic_coreference_suite(self) -> None:
+        """Tái hiện và kiểm tra các giới hạn đồng tham chiếu nhân vật (AUDIT-P42-02)."""
+        boundary = "- Ranh giới 1: Tuyệt đối không để Phong biết hoặc đoán trúng bí mật về chiếc hộp thiếc màu xanh hay sự tồn tại của lá thư trước khi có cơ sở và chứng cứ hợp lệ."
+        contract = check_compliance.build_compliance_contract(
+            self.book, 1, author_boundaries=boundary
+        )
+        check_compliance.save_compliance_contract(self.book, 1, contract)
+
+        # Case A: Cùng một câu vi phạm (Single sentence violation)
+        body_a = self.put(
+            "正文/第001章_CaseA.md",
+            "# 第 1 章\nPhong bước vào phòng và lập tức nhìn thấy chiếc hộp thiếc màu xanh。\n" * 10
+        )
+        rep_a = check_compliance.verify_chapter_compliance(self.book, 1, body_path=body_a)
+        self.assertEqual(rep_a["status"], "VIOLATION", "Case A must detect single-sentence violation")
+
+        # Case B: Hai câu liên tiếp trong cùng đoạn qua đại từ 'Anh' (Consecutive sentences with pronoun)
+        body_b = self.put(
+            "正文/第001章_CaseB.md",
+            "# 第 1 章\nPhong bước vào buồng ngủ. Anh bất ngờ nhìn thấy chiếc hộp thiếc màu xanh đặt trên kệ。\n" * 10
+        )
+        rep_b = check_compliance.verify_chapter_compliance(self.book, 1, body_path=body_b)
+        self.assertEqual(rep_b["status"], "VIOLATION", "Case B must detect co-reference violation across consecutive sentences")
+
+        # Case C: Không báo động giả khi nhân vật khác là chủ thể hành động
+        body_c = self.put(
+            "正文/第001章_CaseC.md",
+            "# 第 1 章\nAn cẩn thận kiểm tra chiếc hộp thiếc màu xanh. Phong vẫn đứng ngoài sân, không biết chuyện gì đang xảy ra trong nhà。\n" * 10
+        )
+        rep_c = check_compliance.verify_chapter_compliance(self.book, 1, body_path=body_c)
+        self.assertEqual(rep_c["status"], "PASS", "Case C must not trigger false positive when An is the subject")
+
+        # Case D: Không nhầm lẫn phủ định với vi phạm
+        body_d = self.put(
+            "正文/第001章_CaseD.md",
+            "# 第 1 章\nPhong không nhìn thấy chiếc hộp thiếc màu xanh. Anh hoàn toàn không biết An đã cất giấu nó ở đâu。\n" * 10
+        )
+        rep_d = check_compliance.verify_chapter_compliance(self.book, 1, body_path=body_d)
+        self.assertEqual(rep_d["status"], "PASS", "Case D must recognize negation across pronoun sentences")
+
+        # Case E: Giới hạn phạm vi đồng tham chiếu - không lan qua đoạn văn khác
+        body_e = self.put(
+            "正文/第001章_CaseE.md",
+            "# 第 1 章\nPhong bước vào buồng và đóng cửa sổ lại.\n\nAn mở tủ và nhìn thấy chiếc hộp thiếc màu xanh。\n" * 10
+        )
+        rep_e = check_compliance.verify_chapter_compliance(self.book, 1, body_path=body_e)
+        self.assertEqual(rep_e["status"], "PASS", "Case E must not leak character subject across paragraphs")
+
+        # Case F: TDD - Từ nối đứng đầu câu viết hoa không làm sót vi phạm (Connective False Negative)
+        body_f = self.put(
+            "正文/第001章_CaseF.md",
+            "# 第 1 章\nPhong bước vào buồng. Sau đó, anh nhìn thấy chiếc hộp thiếc màu xanh。\n" * 10
+        )
+        rep_f = check_compliance.verify_chapter_compliance(self.book, 1, body_path=body_f)
+        self.assertEqual(rep_f["status"], "VIOLATION", "Case F must detect violation even when sentence starts with capitalized connective 'Sau đó'")
+
+        # Case G: TDD - Xử lý nhập nhằng tiền đề đại từ không giả định chắc chắn (Ambiguity Fail-Closed)
+        body_g = self.put(
+            "正文/第001章_CaseG.md",
+            "# 第 1 章\nPhong nhìn An. Anh mở tủ và nhìn thấy chiếc hộp thiếc màu xanh。\n" * 10
+        )
+        rep_g = check_compliance.verify_chapter_compliance(self.book, 1, body_path=body_g)
+        self.assertNotEqual(rep_g["status"], "PASS", "Case G must not silently report PASS when antecedent is ambiguous")
+        self.assertEqual(rep_g["status"], "NEEDS_AUTHOR_DECISION", "Case G must require author decision for ambiguous pronoun")
+        ambig_findings = [f for f in rep_g["findings"] if f.get("method") == "heuristic_character_coreference_ambiguity"]
+        self.assertTrue(len(ambig_findings) > 0, "Must record finding with ambiguity method")
+        self.assertEqual(ambig_findings[0]["confidence"], "ambiguous", "Must reflect uncertainty in confidence")
+
 
 if __name__ == "__main__":
     unittest.main()

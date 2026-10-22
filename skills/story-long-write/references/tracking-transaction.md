@@ -6,9 +6,9 @@
 
 | 层级 | 文件 | 语义 |
 |---|---|---|
-| 唯一权威 | `_tracking-state.json` | schema、最后提交章、导入截止章、状态修订号、上下文结构、角色/伏笔/时间线，以及已提交章节的简短字数记录 |
+| 唯一权威 | `_tracking-state.json` | schema、最后提交章、导入截止章、状态修订号、上下文结构、角色/道具/伏笔/时间线/长期承诺，以及已提交章节的简短字数记录 |
 | 章节记录 | `逐章记录/第NNN章.md` | 本章对未来连续性有用的紧凑变化；目标 ≤1536 字节，硬上限 3072 字节；导入范围内修订写成覆盖记录 |
-| 派生视图 | `上下文.md`、`角色状态/{角色名}.md`、`伏笔.md`、`时间线/作者真相.md`、`时间线/读者已知.md` | 完全从 `_tracking-state.json` 生成；禁止手改，不作为程序输入 |
+| 派生视图 | `上下文.md`、`角色状态/{角色名}.md`、`道具状态.md`、`伏笔.md`、`时间线/作者真相.md`、`时间线/读者已知.md` | 完全从 `_tracking-state.json` 生成；禁止手改，不作为程序输入 |
 
 Markdown 只负责给作者和 Agent 阅读，工具不再反向解析 Markdown。`check` 直接从 `_tracking-state.json` 重渲染并逐文件比较。未来“第几章揭示”的计划写在卷纲/细纲，不写成时间线既成事实。
 逐章记录只是便于人阅读的紧凑变化记录，不承诺单独无损重建全部当前状态；完整当前语义以 `_tracking-state.json` 为准。
@@ -87,7 +87,27 @@ Markdown 只负责给作者和 Agent 阅读，工具不再反向解析 Markdown�
       }
     ],
     "constraints": ["后续继续用作品落地效果和围观反应放大江晨的高光，不能只写系统奖励数字"],
-    "next_chapter_commitments": ["结算五天百万粉任务，并承接老兵主题的新任务"]
+    "next_chapter_commitments": ["结算五天百万粉任务，并承接老兵主题的新任务"],
+    "item_changes": [
+      {
+        "name": "手机原版工程机",
+        "owner": "江晨",
+        "location": "看片会现场",
+        "status": "使用中",
+        "aliases": ["原版手机", "工程机"],
+        "notes": "内含未压缩原始视频素材"
+      }
+    ],
+    "commitment_changes": [
+      {
+        "action": "upsert",
+        "id": "C001",
+        "description": "结算五天百万粉任务",
+        "made_in_chapter": 8,
+        "deadline_chapter": 11,
+        "status": "pending"
+      }
+    ]
   },
   "context": {
     "position": {
@@ -109,6 +129,8 @@ Markdown 只负责给作者和 Agent 阅读，工具不再反向解析 Markdown�
       "abilities_resources": ["前世MCN爆款运营经验", "《中国军魂》伴奏", "大师级导演能力"],
       "relationships": ["钟嘉嘉持续提供军报资源", "周薄森和张耀祖已明确认可其创作能力"],
       "knowledge": ["《军报》采访稿已经过审", "原版视频将继续作为正式军宣内容"],
+      "unaware": ["高层已在筹划跨军兵种联合创作室"],
+      "beliefs": ["认为专业团队背后可能有人故意刁难"],
       "open_threads": ["五天百万粉任务尚未结算", "钟嘉嘉所谓只猜对一半仍未解释"]
     }
   }
@@ -144,3 +166,17 @@ Markdown 只负责给作者和 Agent 阅读，工具不再反向解析 Markdown�
 7. `## 连贯性风险`
 
 其中活跃角色最多 6 人、活跃伏笔确定性选取最多 8 条、近章只保留 3 章。这些是下一章热上下文容量，不是完整角色状态的容量限制。
+
+- **道具状态追踪（`item_changes` / `道具状态.md`）**：
+  - 字段包括 `name`（主名称）、`owner`（当前持有者）、`location`（当前位置）、`status`（当前状态，如 `使用中`、`存放`、`thất lạc/遗失` 等）、`aliases`（别名列表）、`notes`（备注）。
+  - 严谨区分「确认遗失」（`status: thất lạc`）与「未知位置」（`location: không rõ`）。处于遗失状态的物品严禁在正文中被角色直接使用。
+  - 当 state 包含 `items` 时，系统自动生成派生视图 `道具状态.md`。
+- **长期未兑现承诺（`commitment_changes` / `unfulfilled_commitments`）**：
+  - 追踪跨章重大承诺：`id`、`description`、`made_in_chapter`、`deadline_chapter`、`status`（`pending`/`fulfilled`/`cancelled`）。
+  - 支持动作：`add`、`fulfill`、`cancel`、`upsert`。
+  - 当当前章达到或超过 `deadline_chapter` 且状态仍为 `pending` 时，系统提示过期警报；一旦标记为 `fulfilled`，系统记录确认并不再报警。
+- **认识论三态角色知识模型（Epistemic Tri-State Knowledge Model）**：
+  - `knowledge`（已确认已知）：客观事实，叙事中角色可自由使用。
+  - `unaware`（已确认未知/盲区）：明确标记角色不知情的事实。正文严禁角色凭空获知或借直觉开天眼。
+  - `beliefs`（主观信念/疑虑）：角色的主观推测或误解，与客观事实严格区分。
+  - 未指定（两者皆无）：未在 `knowledge` 和 `unaware` 出现的普通事物，不代表角色必然不知，在情节合情合理时允许角色在场自然观察获取。

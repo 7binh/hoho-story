@@ -18,7 +18,8 @@
    - **先跑组装脚本**：`{PYTHON} {skill 根}/scripts/build_writer_prompt.py --project {项目根} --chapter {N} --request "{作者本轮要求}" --out`（若要求较长或有多条，可写入临时文件并传 `--request-file {路径}`；无特殊要求可省略 `--request`）。脚本会自动执行：
      1. **注入作者意图与创作边界**：最高优先级保留作者本轮要求，自动装载 `设定/`、本书及项目级 `作者记忆/` 中的生效创作边界（负面约束/禁止项/必发生项），细纲无权自行动摇或冲淡作者已确认的要求；
      2. **冲突仲裁**：当细纲与作者新要求冲突时，以作者要求为准并产出细纲覆盖提案；
-     3. **生成合规契约**：自动在工作目录生成 `{工作目录}/compliance_contract.json`（含契约 SHA-256 签名，用于写后合规门校验）。
+     3. **生成合规契约**：自动在工作目录生成 `{工作目录}/compliance_contract.json`（含契约 SHA-256 签名，用于写后合规门校验）；
+     4. **跨章连续性与认识论三态知识注入**：自动检索最近已提交章节事实、明确已确定正文事实优先于陈旧细纲；装载在场角色的认识论三态模型（已确认已知、已确认未知/盲区、主观怀疑）、道具位置与持有状态（别名匹配并区分确认遗失与未知位置）、未兑现承诺与过期债务预警。
      `====` 以上是 prompt、以下是核对报告；退出码 2 ＝数据问题，修完重跑，不手拼绕过。
    - **状态筛选**：从续写状态卡取本章在场角色、要碰/要避的伏笔、必须履行的下一章承诺与相关长期约束，写成本节速记。
    - **召回**：核对报告写「召回降档：成立」时直接用脚本给的情绪/节奏；不成立时才完整读取 [benchmark-recall.md](benchmark-recall.md) 执行全量召回。
@@ -49,6 +50,7 @@
     - 运行 `{PYTHON} {skill 根}/scripts/tracking_commit.py draft --project {项目根} --chapter {N}`，预填工作目录 `tracking.json`，并给出在场核心角色的当前快照和每类条目的样板（`shapes`）。只填 `delta` 与留空的本章结尾时间、场景：变化的核心角色（含本章首次进场的核心角色，草稿里没有就新建一份）把快照整份改好放进 `character_snapshots`；撤下的长期约束或风险从 `context` 删掉并把原文列进 `delta.retired_context_items`。不读脚本源码或 state 找格式；出错时才读 [tracking-transaction.md](tracking-transaction.md)。
     - 带内执行 `{PYTHON} {skill 根}/scripts/storyctl.py chapter commit --project {项目根} --chapter {N} --input {工作目录}/tracking.json`，作者接受当前长度把 `commit` 换成 `accept-current-length`。
     - **Fail-Closed 合规门校验**：`chapter commit` 自动执行强制校验——要求必须存在状态为 `PASS` 的合规报告，且报告内的 `contract_sha256` 与 `draft_sha256` 必须与当前磁盘上的契约和最终正文完全吻合。若报告缺失（`COMPLIANCE_MISSING`）、哈希过期失效（`COMPLIANCE_STALE`）或存在未修复违规（`COMPLIANCE_BLOCKED`），提交将被绝对阻断（退出码 1），不会写入任何追踪事务或覆盖数据。
+    - **速记与正文事实一致性漂移检测（Summary Drift Gate）**：`chapter commit` 自动对比 `tracking.json` 中的章节速记摘要与实际正文，严格拦截事实相反（如速记称某事发生但正文直接否定、或速记称拒绝但正文写成接受）的漂移；同时智能排除心理犹豫过程（先考虑后拒绝）、角色主观误解、梦境/假想等虚构语境及同义转述，确保不产生误报阻断。
     - 报错按提示改完重跑同一命令；体积超目标只是提醒，逐章记录写要点即可，不必为它删改。判为「登记」的申报项在这次事务里一并登记；有「先问作者」项时暂停提交与下一章。「本章没写成的」：细纲没给的追加进本单元排纲底稿「建纲追加」，先问作者的走下方处置表。
 13. **提交后核对**：返回 `tracking_committed: true` 即本章完成。
 
